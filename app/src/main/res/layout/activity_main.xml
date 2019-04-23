@@ -6,7 +6,7 @@
     android:layout_height="match_parent"
     tools:context=".activities.MainActivity">
 
-    <android.support.v7.widget.Toolbar
+    <androidx.appcompat.widget.Toolbar
         android:id="@+id/main_app_bar"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
@@ -28,7 +28,7 @@
         android:layout_below="@id/main_app_bar"
         />
 
-    <android.support.design.widget.BottomNavigationView
+    <com.google.android.material.bottomnavigation.BottomNavigationView
         android:id="@+id/main_bottom_nav_bar"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
