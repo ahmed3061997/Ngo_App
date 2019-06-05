@@ -27,4 +27,27 @@ dependencies {
     testImplementation 'junit:junit:4.12'
     androidTestImplementation 'androidx.test:runner:1.1.1'
     androidTestImplementation 'androidx.test.espresso:espresso-core:3.1.1'
+
+    // firebase
+    implementation 'com.google.firebase:firebase-core:16.0.9'
+    // firebase Authentication
+    implementation 'com.google.firebase:firebase-auth:17.0.0'
+    // firebase database
+    implementation 'com.google.firebase:firebase-database:17.0.0'
+    // firebase storage
+    implementation 'com.google.firebase:firebase-storage:17.0.0'
+    // picasso
+    implementation 'com.squareup.picasso:picasso:2.71828'
+    // circle image view
+    implementation 'de.hdodenhof:circleimageview:3.0.0'
+    // Android Image Cropper
+    api 'com.theartofdev.edmodo:android-image-cropper:2.8.0'
+    // image compressor
+    implementation 'id.zelory:compressor:2.1.0'
+
+    implementation 'com.google.zxing:core:3.2.1'
+
+    //implementation 'com.qhutch.elevationimageview:elevationimageview:2.4' // Needs kotlin
 }
+
+apply plugin: 'com.google.gms.google-services'

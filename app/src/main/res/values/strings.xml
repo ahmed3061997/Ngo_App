@@ -9,4 +9,9 @@
 
     <!-- TODO: Remove or change this placeholder text -->
     <string name="hello_blank_fragment">Hello blank fragment</string>
+    <string name="hi">Hi</string>
+    <string name="log_in">Sign In</string>
+    <string name="request_an_account">Sign Up</string>
+    <string name="string_start">Share your charity organization activity, Log in now</string>
+    <string name="appbar_scrolling_view_behavior">com.google.android.material.appbar.AppBarLayout$ScrollingViewBehavior</string>
 </resources>

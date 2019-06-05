@@ -12,13 +12,14 @@
         android:layout_height="wrap_content"
         android:layout_alignParentTop="true"
         android:layout_marginTop="0dp"
+        android:elevation="3dp"
         android:background="@color/colorPrimaryDark"
         android:gravity="center_horizontal"
         android:textAlignment="center"
         android:theme="@style/Base.ThemeOverlay.AppCompat.Dark.ActionBar"
         app:menu="@menu/main_toolbar"
         app:popupTheme="@style/ThemeOverlay.AppCompat.Light"
-        app:titleTextColor="#FFFFFF" />
+        app:titleTextColor="@color/colorWhite" />
 
     <FrameLayout
         android:id="@+id/main_fragment_container"
@@ -33,12 +34,10 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_alignParentBottom="true"
-        android:background="@color/colorPrimary"
-        android:elevation="4dp"
+        android:background="@color/colorWhite"
         android:textAlignment="gravity"
-        app:elevation="24dp"
-        app:itemBackground="@color/colorPrimaryDark"
-        app:itemIconTint="#FFFFFF"
-        app:itemTextColor="@color/colorWhiteText"
-        app:menu="@menu/main_bottom_navigation_bar" />
+        app:itemBackground="@color/colorPrimary"
+        app:itemIconTint="@color/bottom_nav_item_foreground"
+        app:itemTextColor="@color/bottom_nav_item_foreground"
+        app:menu="@menu/main_bottom_navigation_bar"/>
 </RelativeLayout>
