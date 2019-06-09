@@ -39,8 +39,6 @@ import de.hdodenhof.circleimageview.CircleImageView;
  * A simple {@link Fragment} subclass.
  */
 public class MyAccountFragment extends Fragment {
-    // firebase Auth
-    private FirebaseAuth mAuth;
     // firebase Database
     private DatabaseReference mDatabase;
     private FirebaseUser mCurrentUser;
@@ -63,8 +61,9 @@ public class MyAccountFragment extends Fragment {
 
         // firebase Database
         mCurrentUser = FirebaseAuth.getInstance().getCurrentUser();
-        String Current_User_Id = mCurrentUser.getUid();
-        mDatabase = FirebaseDatabase.getInstance().getReference().child("Users").child(Current_User_Id);
+
+        String currentUserId = mCurrentUser.getUid();
+        mDatabase = FirebaseDatabase.getInstance().getReference().child("Users").child(currentUserId);
         mImageStorage = FirebaseStorage.getInstance().getReference();
 
         // retrieve data from database

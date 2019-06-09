@@ -2,11 +2,11 @@
 <androidx.coordinatorlayout.widget.CoordinatorLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/case_coordinator_layout"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:fitsSystemWindows="true"
-    tools:context=".activities.CaseActivity"
-    android:id="@+id/case_coordinator_layout">
+    tools:context=".activities.CaseActivity">
 
 
     <include
@@ -44,7 +44,7 @@
                     android:layout_width="match_parent"
                     android:layout_height="250dp"
                     android:scaleType="centerCrop"
-                    android:visibility="gone"/>
+                    android:visibility="gone" />
             </FrameLayout>
 
             <com.google.android.material.textfield.TextInputLayout
@@ -53,7 +53,8 @@
                 android:layout_marginStart="8dp"
                 android:layout_marginTop="15dp"
                 android:layout_marginEnd="8dp"
-                android:layout_marginBottom="10dp">
+                android:layout_marginBottom="10dp"
+                app:boxBackgroundColor="@color/case_text_field_text_color">
 
                 <com.google.android.material.textfield.TextInputEditText
                     android:id="@+id/case_title_field"
@@ -61,7 +62,8 @@
                     android:layout_height="wrap_content"
                     android:hint="Title"
                     android:inputType="text"
-                    android:textSize="16sp" />
+                    android:textSize="16sp"
+                    android:textColor="@color/case_text_field_text_color"/>
             </com.google.android.material.textfield.TextInputLayout>
 
             <com.google.android.material.textfield.TextInputLayout
@@ -78,25 +80,27 @@
                     android:gravity="top"
                     android:hint="Body"
                     android:inputType="textMultiLine"
-                    android:textSize="16sp" />
+                    android:textSize="16sp"
+                    android:lineSpacingExtra="4dp"
+                    android:textColor="@color/case_text_field_text_color"/>
             </com.google.android.material.textfield.TextInputLayout>
 
             <androidx.appcompat.widget.LinearLayoutCompat
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_gravity="right"
-                android:layout_marginBottom="10dp"
                 android:layout_marginStart="8dp"
-                android:layout_marginEnd="8dp">
+                android:layout_marginEnd="8dp"
+                android:layout_marginBottom="10dp">
 
                 <androidx.appcompat.widget.AppCompatImageView
                     android:layout_width="30dp"
                     android:layout_height="30dp"
-                    app:srcCompat="@drawable/ic_cash"
-                    android:tint="@color/colorPrimary"
-                    android:layout_marginTop="4dp"
                     android:layout_gravity="center"
-                    android:layout_marginEnd="5dp"/>
+                    android:layout_marginTop="4dp"
+                    android:layout_marginEnd="5dp"
+                    android:tint="@color/colorPrimary"
+                    app:srcCompat="@drawable/ic_cash" />
 
                 <com.google.android.material.textfield.TextInputLayout
                     android:layout_width="match_parent"
@@ -107,11 +111,12 @@
                         android:id="@+id/case_donated_field"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:minWidth="62dp"
                         android:gravity="top"
                         android:hint="Donated"
                         android:inputType="number"
-                        android:textSize="14sp" />
+                        android:minWidth="62dp"
+                        android:textSize="14sp"
+                        android:textColor="@color/case_text_field_text_color" />
                 </com.google.android.material.textfield.TextInputLayout>
 
                 <com.google.android.material.textfield.TextInputLayout
@@ -122,11 +127,12 @@
                         android:id="@+id/case_needed_field"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:minWidth="62dp"
                         android:gravity="top"
                         android:hint="Needed"
                         android:inputType="number"
-                        android:textSize="14sp" />
+                        android:minWidth="62dp"
+                        android:textSize="14sp"
+                        android:textColor="@color/case_text_field_text_color" />
                 </com.google.android.material.textfield.TextInputLayout>
             </androidx.appcompat.widget.LinearLayoutCompat>
 

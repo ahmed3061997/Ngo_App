@@ -12,10 +12,12 @@ import com.google.firebase.database.DatabaseReference;
 import com.google.firebase.database.FirebaseDatabase;
 import com.google.firebase.database.ServerValue;
 
+import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.HashMap;
 
-public class Case {
+public class Case implements Serializable {
+    private String mCaseId;
     private String mTitle;
     private String mBody;
     private String mThumbImg;
@@ -34,28 +36,36 @@ public class Case {
         this.mImages = mImages;
     }
 
+    public String getCaseId() {
+        return mCaseId;
+    }
+
+    public void setCaseId(String caseId) {
+        this.mCaseId = caseId;
+    }
+
     public String getTitle() {
         return mTitle;
     }
 
-    public void setTitle(String mTitle) {
-        this.mTitle = mTitle;
+    public void setTitle(String title) {
+        this.mTitle = title;
     }
 
     public String getBody() {
         return mBody;
     }
 
-    public void setBody(String mBody) {
-        this.mBody = mBody;
+    public void setBody(String body) {
+        this.mBody = body;
     }
 
     public String getThumbImg() {
         return mThumbImg;
     }
 
-    public void setThumbImg(String mThumbImg) {
-        this.mThumbImg = mThumbImg;
+    public void setThumbImg(String thumbImg) {
+        this.mThumbImg = thumbImg;
     }
 
     public long getTimestamp() {
@@ -70,38 +80,39 @@ public class Case {
         return mOrgName;
     }
 
-    public void setOrgName(String mOrgName) {
-        this.mOrgName = mOrgName;
+    public void setOrgName(String orgName) {
+        this.mOrgName = orgName;
     }
 
     public String getOrgThumb() {
         return mOrgThumb;
     }
 
-    public void setOrgThumb(String mOrgThumb) {
-        this.mOrgThumb = mOrgThumb;
+    public void setOrgThumb(String orgThumb) {
+        this.mOrgThumb = orgThumb;
     }
 
     public int getNeeded() {
         return mNeeded;
     }
 
-    public void setNeeded(int mNeeded) {
-        this.mNeeded = mNeeded;
+    public void setNeeded(int needed) {
+        this.mNeeded = needed;
     }
 
     public int getDonated() {
         return mDonated;
     }
 
-    public void setDonated(int mDonated) {
-        this.mDonated = mDonated;
+    public void setDonated(int donated) {
+        this.mDonated = donated;
     }
 
-    public static String saveCase(String caseId, final Case caseRef, final OnCompleteListener<Void> completeListener) {
+    public static void saveCase(final Case caseRef, final OnCompleteListener<Void> completeListener) {
         FirebaseAuth auth = FirebaseAuth.getInstance();
         FirebaseUser currentUser = auth.getCurrentUser();
         String userId = currentUser.getUid(); // ngo id
+        String caseId = caseRef.getCaseId();
 
         final DatabaseReference databaseRef = (caseId == null ? FirebaseDatabase.getInstance().getReference()
                 .child("Cases")
@@ -117,29 +128,17 @@ public class Case {
         caseMap.put("timestamp", ServerValue.TIMESTAMP);
         caseMap.put("needed", caseRef.getNeeded());
         caseMap.put("donated", String.valueOf(caseRef.getDonated()));
-        caseMap.put("thumb_img", caseRef.getThumbImg());
+
+        if (caseRef.getThumbImg() == null)
+            caseMap.put("thumb_img", "default");
+
+        caseRef.setCaseId(databaseRef.getKey()); // forward case id again (generated or given)
 
         databaseRef.updateChildren(caseMap).addOnCompleteListener(new OnCompleteListener<Void>() {
             @Override
             public void onComplete(@NonNull Task<Void> task) {
-                if (task.isSuccessful()) {
-                    ArrayList imgList = caseRef.getImages();
-                    if (imgList != null) {
-                        HashMap<String, Object> imgMap = new HashMap<>();
-                        for (String url : caseRef.getImages()) {
-                            imgMap.put(url, "default");
-                        }
-                        // put images.. forward completed callback
-                        databaseRef.child("Images").updateChildren(imgMap).addOnCompleteListener(completeListener);
-                    } else {
-                        completeListener.onComplete(task); // No images.. now completed
-                    }
-                } else {
-                    completeListener.onComplete(task); // failed..
-                }
+                completeListener.onComplete(task); // forward callback
             }
         });
-
-        return databaseRef.getKey(); // forward case id again (generated or given)
     }
 }

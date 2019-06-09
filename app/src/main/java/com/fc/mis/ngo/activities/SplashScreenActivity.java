@@ -9,6 +9,7 @@ import android.os.Handler;
 import com.fc.mis.ngo.R;
 import com.google.firebase.FirebaseApp;
 import com.google.firebase.FirebaseOptions;
+import com.squareup.picasso.Picasso;
 
 public class SplashScreenActivity extends AppCompatActivity {
     // duration of watit

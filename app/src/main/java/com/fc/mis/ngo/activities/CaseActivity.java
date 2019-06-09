@@ -12,7 +12,6 @@ import android.animation.Animator;
 import android.animation.AnimatorListenerAdapter;
 import android.animation.ValueAnimator;
 import android.annotation.SuppressLint;
-import android.app.Activity;
 import android.app.ProgressDialog;
 import android.content.DialogInterface;
 import android.content.Intent;
@@ -21,28 +20,41 @@ import android.graphics.BitmapFactory;
 import android.net.Uri;
 import android.os.Bundle;
 import android.provider.MediaStore;
+import android.util.Log;
 import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
+import android.view.WindowManager;
 import android.widget.Toast;
 
 import com.fc.mis.ngo.R;
 import com.fc.mis.ngo.models.Case;
 import com.fc.mis.ngo.models.SwipeDismissTouchListener;
 import com.google.android.gms.tasks.OnCompleteListener;
-import com.google.android.gms.tasks.OnFailureListener;
 import com.google.android.gms.tasks.OnSuccessListener;
 import com.google.android.gms.tasks.Task;
 import com.google.android.material.button.MaterialButton;
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
 import com.google.android.material.snackbar.Snackbar;
 import com.google.android.material.textfield.TextInputEditText;
+import com.google.firebase.auth.FirebaseAuth;
+import com.google.firebase.database.DataSnapshot;
+import com.google.firebase.database.DatabaseError;
+import com.google.firebase.database.DatabaseReference;
+import com.google.firebase.database.FirebaseDatabase;
+import com.google.firebase.database.ValueEventListener;
+import com.google.firebase.storage.FirebaseStorage;
+import com.google.firebase.storage.StorageReference;
+import com.google.firebase.storage.UploadTask;
 import com.squareup.picasso.Callback;
 import com.squareup.picasso.Picasso;
 
+import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
-import java.util.concurrent.Executor;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
 
 public class CaseActivity extends AppCompatActivity {
     private static final int PICK_COVER_IMAGE = 100;
@@ -59,11 +71,17 @@ public class CaseActivity extends AppCompatActivity {
     private TextInputEditText mDonated;
     private TextInputEditText mNeeded;
     private AppCompatImageView mCoverImg;
-    private LinearLayoutCompat mImagesList;
+    private LinearLayoutCompat mImagesListLayout;
+
+    private ProgressDialog mProgress;
 
     private boolean mEditMode;
     private Case mCase;
-    private String mCaseId;
+    private List<Uri> mImageList;
+    private List<String> mImageToRemove;
+    private String mCurrentUserId;
+    private DatabaseReference mCasesDatabase;
+    private boolean mCoverChanged = false;
 
     @SuppressLint("ClickableViewAccessibility")
     @Override
@@ -79,22 +97,6 @@ public class CaseActivity extends AppCompatActivity {
         getSupportActionBar().setDisplayHomeAsUpEnabled(true);
         getSupportActionBar().setHomeButtonEnabled(true);
 
-        // Intent options
-        Intent intent = getIntent();
-        mEditMode = intent.getBooleanExtra("EditMode", false);
-
-        if (mEditMode && !intent.hasExtra("CaseId")) {
-            showAlert("Unexpected Error", "No case id specified", new DialogInterface.OnCancelListener() {
-                @Override
-                public void onCancel(DialogInterface dialog) {
-                    finish();
-                }
-            });
-            return;
-        } else {
-            mCaseId = intent.getStringExtra("CaseId");
-            loadCase();
-        }
 
         // UI
         mAddPicBtn = (MaterialButton) findViewById(R.id.case_add_picture_btn);
@@ -105,7 +107,7 @@ public class CaseActivity extends AppCompatActivity {
         mDonated = (TextInputEditText) findViewById(R.id.case_donated_field);
         mNeeded = (TextInputEditText) findViewById(R.id.case_needed_field);
         mCoverImg = (AppCompatImageView) findViewById(R.id.case_cover_img);
-        mImagesList = (LinearLayoutCompat) findViewById(R.id.case_images_list);
+        mImagesListLayout = (LinearLayoutCompat) findViewById(R.id.case_images_list);
 
         mAddPicBtn.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -158,128 +160,286 @@ public class CaseActivity extends AppCompatActivity {
         mProgress.setTitle("Saving Case");
         mProgress.setMessage("Please wait while we upload your case");
         mProgress.setCanceledOnTouchOutside(false);
+        mProgress.setCancelable(false);
+
+        mImageList = new ArrayList<>();
+        mImageToRemove = new ArrayList<>();
+
+        mCurrentUserId = FirebaseAuth.getInstance().getCurrentUser().getUid();
+        mCasesDatabase = FirebaseDatabase.getInstance().getReference().child("Cases").child(mCurrentUserId);
+
+
+        // Intent options
+        Intent intent = getIntent();
+        mEditMode = intent.getBooleanExtra("EditMode", false);
+
+        if (intent.hasExtra("Case")) {
+            mCase = (Case) getIntent().getSerializableExtra("Case");
+
+            if (mCase == null) {
+                showAlert(null, "Can't deserialize data", new DialogInterface.OnCancelListener() {
+                    @Override
+                    public void onCancel(DialogInterface dialog) {
+                        finish();
+                    }
+                });
+                return;
+            }
+
+            mTitle.setText(mCase.getTitle());
+            mBody.setText(mCase.getBody());
+            mDonated.setText("" + mCase.getDonated());
+            mNeeded.setText("" + mCase.getNeeded());
+
+            Picasso.get().load(mCase.getThumbImg()).noPlaceholder().into(mCoverImg, new Callback() {
+                @Override
+                public void onSuccess() {
+                    mCoverImg.setVisibility(View.VISIBLE);
+                }
+
+                @Override
+                public void onError(Exception e) {
+                }
+            });
+
+            if (mCase.getImages() != null)
+                for (String url : mCase.getImages()) {
+                    addImageView(Uri.parse(url));
+                }
+
+            getSupportActionBar().setTitle("Edit Case");
+
+            if (!mEditMode) {
+                exitEditMode();
+            }
+
+        } else {
+            if (mEditMode) {
+                exitEditMode();
+                showAlert("Unexpected Error", "No case data specified", new DialogInterface.OnCancelListener() {
+                    @Override
+                    public void onCancel(DialogInterface dialog) {
+                        finish();
+                    }
+                });
+            }
+        }
     }
 
-    private ProgressDialog mProgress;
-
     private void saveCase() {
+        if (mCase == null)
+            mCase = new Case();
+
+        String title = mTitle.getText().toString();
+        String body = mBody.getText().toString();
+        int donated = Integer.valueOf(mDonated.getText().toString());
+        int needed = Integer.valueOf(mNeeded.getText().toString());
+        boolean imageChanged = mCoverChanged || mImageList.size() > 0;
+
+        // user wanna delete cover image or other images
+        if (mCoverImg.getVisibility() == View.GONE || mImageToRemove.size() > 0) {
+            mProgress.show(); // show dialog
+
+            // skip to delete cover or other images
+            updateCoverImage(new OnCompleteListener() {
+                @Override
+                public void onComplete(@NonNull Task task) {
+                    updateImages();
+                }
+            });
+            return;
+        }
+
+        if (title.equals(mCase.getTitle()) && body.equals(mCase.getBody()) &&
+                donated == mCase.getDonated() && needed == mCase.getNeeded() && !imageChanged) {
+            Snackbar.make(findViewById(R.id.case_coordinator_layout),
+                    "No changes made !", Snackbar.LENGTH_SHORT).show();
+
+            exitEditMode();
+            return;
+        }
+
         mProgress.show();
 
-        uploadImages(new OnCompleteListener<Void>() {
+        mCase.setTitle(title);
+        mCase.setBody(body);
+        mCase.setDonated(Integer.valueOf(donated));
+        mCase.setNeeded(Integer.valueOf(needed));
+
+        Case.saveCase(mCase, new OnCompleteListener<Void>() {
             @Override
             public void onComplete(@NonNull Task<Void> task) {
-                Case caseRef = new Case();
-
-                caseRef.setTitle(mTitle.getText().toString());
-                caseRef.setBody(mTitle.getText().toString());
-                caseRef.setDonated(Integer.valueOf(mDonated.getText().toString()));
-                caseRef.setNeeded(Integer.valueOf(mNeeded.getText().toString()));
-
                 if (task.isSuccessful()) {
-
-                    mCaseId = Case.saveCase(mCaseId, caseRef, new OnCompleteListener<Void>() {
+                    updateCoverImage(new OnCompleteListener() {
                         @Override
-                        public void onComplete(@NonNull Task<Void> task) {
-                            mProgress.hide();
-                            if (task.isSuccessful()) {
-                                Snackbar.make(findViewById(R.id.case_coordinator_layout),
-                                        "Case saved succussfully !", Snackbar.LENGTH_SHORT).show();
-                                exitEditMode();
-                            } else {
+                        public void onComplete(@NonNull Task task) {
+                            if (task != null && !task.isSuccessful()) {
+                                mProgress.hide();
                                 showAlert("Error", task.getException().getMessage(), null);
+                                Log.d("CaseActivity", "skip uploading images");
+                                return; // skip uploading images
                             }
+                            updateImages();
                         }
                     });
                 } else {
-                    mProgress.hide();
                     showAlert("Error", task.getException().getMessage(), null);
                 }
             }
         });
     }
 
-    private void uploadImages(OnCompleteListener<Void> listener) {
-        listener.onComplete(new Task<Void>() {
-            @Override
-            public boolean isComplete() {
-                return false;
+    private void updateCoverImage(final OnCompleteListener listener) {
+        if (!mCoverChanged) {
+            // Check if deleted
+            if (mCoverImg.getVisibility() == View.GONE) { // If GONE --> deleted
+                mCasesDatabase
+                        .child(mCase.getCaseId())
+                        .child("thumb_img")
+                        .setValue("default"); // set to default
             }
 
-            @Override
-            public boolean isSuccessful() {
-                return true;
-            }
+            // image not changed or deleted --> skip to next
+            listener.onComplete(null);
+            return;
 
-            @Override
-            public boolean isCanceled() {
-                return false;
-            }
+        } // cover image changed --> continue
 
-            @Nullable
-            @Override
-            public Void getResult() {
-                return null;
-            }
+        // open thumb image
+        Object uri = mCoverImg.getTag();
+        if (uri == null) {
+            listener.onComplete(null);
+            return;
+        }
 
-            @Nullable
-            @Override
-            public <X extends Throwable> Void getResult(@NonNull Class<X> aClass) throws X {
-                return null;
-            }
+        Uri thumbImg = (Uri) uri;
+        InputStream stream;
+        try {
+            stream = getContentResolver().openInputStream(thumbImg);
+        } catch (FileNotFoundException e) {
+            e.printStackTrace();
+            showAlert("Error", e.getMessage(), null);
+            return;
+        }
 
-            @Nullable
-            @Override
-            public Exception getException() {
-                return null;
-            }
+        final StorageReference casesStorage = FirebaseStorage.getInstance().getReference()
+                .child("cases_images") // cases folder
+                .child(mCurrentUserId) // ngo id
+                .child(mCase.getCaseId()); // case id
 
-            @NonNull
-            @Override
-            public Task<Void> addOnSuccessListener(@NonNull OnSuccessListener<? super Void> onSuccessListener) {
-                return null;
-            }
+        final DatabaseReference caseNode = mCasesDatabase.child(mCase.getCaseId()); // case id
 
-            @NonNull
+        // upload thumb image
+        final StorageReference thumbFile = casesStorage.child("thumb_img.jpg");
+        thumbFile.putStream(stream).addOnCompleteListener(new OnCompleteListener<UploadTask.TaskSnapshot>() {
             @Override
-            public Task<Void> addOnSuccessListener(@NonNull Executor executor, @NonNull OnSuccessListener<? super Void> onSuccessListener) {
-                return null;
-            }
+            public void onComplete(@NonNull Task<UploadTask.TaskSnapshot> task) {
+                listener.onComplete(task);
 
-            @NonNull
-            @Override
-            public Task<Void> addOnSuccessListener(@NonNull Activity activity, @NonNull OnSuccessListener<? super Void> onSuccessListener) {
-                return null;
-            }
+                if (task.isSuccessful()) {
 
-            @NonNull
-            @Override
-            public Task<Void> addOnFailureListener(@NonNull OnFailureListener onFailureListener) {
-                return null;
-            }
+                    // assign thumb image url to case node
+                    thumbFile.getDownloadUrl().addOnSuccessListener(new OnSuccessListener<Uri>() {
+                        @Override
+                        public void onSuccess(Uri uri) {
+                            HashMap<String, Object> map = new HashMap<>();
+                            map.put("thumb_img", uri.toString());
+                            caseNode.updateChildren(map);
+                        }
+                    });
 
-            @NonNull
-            @Override
-            public Task<Void> addOnFailureListener(@NonNull Executor executor, @NonNull OnFailureListener onFailureListener) {
-                return null;
-            }
-
-            @NonNull
-            @Override
-            public Task<Void> addOnFailureListener(@NonNull Activity activity, @NonNull OnFailureListener onFailureListener) {
-                return null;
+                } else {
+                    showAlert("Error", task.getException().getMessage(), null);
+                }
             }
         });
     }
 
-    private void loadCase() {
+    private void finishUpdating() {
+        mProgress.hide();
+
+        Snackbar.make(findViewById(R.id.case_coordinator_layout),
+                "Case saved successfully", Snackbar.LENGTH_SHORT).show();
+
+        exitEditMode();
+    }
+
+    private void updateImages() {
+        final StorageReference casesStorage = FirebaseStorage.getInstance().getReference()
+                .child("cases_images") // cases folder
+                .child(mCurrentUserId) // ngo id
+                .child(mCase.getCaseId()); // case id
+
+        final DatabaseReference imagesNode = mCasesDatabase
+                .child(mCase.getCaseId()) // case id
+                .child("images");
+
+        // remove images
+        if (mImageToRemove.size() > 0) {
+            for (String url : mImageToRemove) {
+                DatabaseReference ref = imagesNode.equalTo(url).getRef();
+                if (ref != null)
+                    ref.removeValue();
+            }
+        }
+
+        // no new images
+        if (mImageList.size() == 0) {
+            finishUpdating();
+            return;
+        }
+
+        // upload images
+        for (final Uri image : mImageList) {
+            final DatabaseReference node = imagesNode.push();
+
+            final StorageReference imageFile = casesStorage.child(node.getKey() + ".jpg");
+
+            try {
+                InputStream imgStream = getContentResolver().openInputStream(image);
+
+                imageFile.putStream(imgStream).addOnCompleteListener(new OnCompleteListener<UploadTask.TaskSnapshot>() {
+                    @Override
+                    public void onComplete(@NonNull Task<UploadTask.TaskSnapshot> task) {
+                        mImageList.remove(image);
+
+                        if (task.isSuccessful()) {
+                            Log.d("CaseActivity", "image uploaded, remaining: " + mImageList.size());
+
+                            imageFile.getDownloadUrl().addOnSuccessListener(new OnSuccessListener<Uri>() {
+                                @Override
+                                public void onSuccess(Uri uri) {
+                                    node.setValue(uri.toString());
+                                }
+                            });
+
+                        } else {
+                            Log.e("CaseActivity",
+                                    "Error while uploading image, "
+                                            + task.getException().getMessage());
+                        }
+
+                        // completed
+                        if (mImageList.size() == 0)
+                            finishUpdating();
+
+                    }
+                });
+            } catch (FileNotFoundException e) {
+                e.printStackTrace();
+            }
+        }
     }
 
     private void enterEditMode() {
+        getSupportActionBar().setTitle("Edit Case");
         mEditMode = true;
         mTitle.setEnabled(true);
         mBody.setEnabled(true);
         mNeeded.setEnabled(true);
         mDonated.setEnabled(true);
+        mCoverImg.setEnabled(true);
+        mImagesListLayout.setEnabled(true);
         mAddCoverBtn.setVisibility(View.VISIBLE);
         mAddPicBtn.setVisibility(View.VISIBLE);
         mFabBtn.setTag("done");
@@ -287,15 +447,19 @@ public class CaseActivity extends AppCompatActivity {
     }
 
     private void exitEditMode() {
+        getSupportActionBar().setTitle("Case Details");
         mEditMode = false;
         mTitle.setEnabled(false);
         mBody.setEnabled(false);
         mNeeded.setEnabled(false);
         mDonated.setEnabled(false);
+        mCoverImg.setEnabled(false);
+        mImagesListLayout.setEnabled(false);
         mAddCoverBtn.setVisibility(View.GONE);
         mAddPicBtn.setVisibility(View.GONE);
         mFabBtn.setTag("edit");
         mFabBtn.setImageDrawable(getResources().getDrawable(R.drawable.ic_edit));
+        getWindow().setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_STATE_ALWAYS_HIDDEN);
     }
 
     private void addImage() {
@@ -341,6 +505,10 @@ public class CaseActivity extends AppCompatActivity {
         AlertDialog dialog = builder.create();
         dialog.setCanceledOnTouchOutside(false);
         dialog.setOnCancelListener(cancelListener);
+
+        if (mProgress != null && mProgress.isShowing())
+            mProgress.hide();
+
         dialog.show();
     }
 
@@ -358,11 +526,13 @@ public class CaseActivity extends AppCompatActivity {
 
         if (resultCode == RESULT_OK) {
             if (requestCode == PICK_COVER_IMAGE) {
-                Uri imageUri = data.getData();
+                final Uri imageUri = data.getData();
 
                 Picasso.get().load(imageUri).noPlaceholder().into(mCoverImg, new Callback() {
                     @Override
                     public void onSuccess() {
+                        mCoverChanged = true;
+                        mCoverImg.setTag(imageUri);
                         mCoverImg.setVisibility(View.VISIBLE);
                         mAddCoverBtn.setVisibility(View.INVISIBLE);
                     }
@@ -394,10 +564,8 @@ public class CaseActivity extends AppCompatActivity {
         //imageView.setScaleType(ImageView.ScaleType.CENTER);
         imageView.setAdjustViewBounds(true);
 
-        imageView.setTag(imageUri);
-
-        int index = mImagesList.getChildCount() - 1;
-        mImagesList.addView(imageView, index);
+        int index = mImagesListLayout.getChildCount() - 1;
+        mImagesListLayout.addView(imageView, index);
 
         imageView.setOnLongClickListener(new View.OnLongClickListener() {
             @Override
@@ -415,7 +583,8 @@ public class CaseActivity extends AppCompatActivity {
                 animator.addListener(new AnimatorListenerAdapter() {
                     @Override
                     public void onAnimationEnd(Animator animation) {
-                        mImagesList.removeView(v);
+                        mImageToRemove.add(v.getTag().toString());
+                        mImagesListLayout.removeView(v);
                         // Reset view presentation
                         v.setAlpha(1f);
                         v.setTranslationX(0);
@@ -441,28 +610,38 @@ public class CaseActivity extends AppCompatActivity {
                 new SwipeDismissTouchListener.DismissCallbacks() {
                     @Override
                     public boolean canDismiss(Object token) {
-                        return true;
+                        return mEditMode;
                     }
 
                     @Override
                     public void onDismiss(View view, Object token) {
-                        mImagesList.removeView(view);
+                        mImageToRemove.add(view.getTag().toString());
+                        mImagesListLayout.removeView(view);
                     }
                 }));
 
 
-        try {
-            InputStream imgStream = getContentResolver().openInputStream(imageUri);
+        if (imageUri.getScheme().equals("content")) { // local uri (image to upload) --> cache uri
+            mImageList.add(imageUri); // cache
 
-            BitmapFactory.Options options = new BitmapFactory.Options();
-            options.inScaled = false;
-            options.inSampleSize = 3;
+            try {
+                InputStream imgStream = getContentResolver().openInputStream(imageUri);
 
-            Bitmap img = BitmapFactory.decodeStream(imgStream, null, options);
+                BitmapFactory.Options options = new BitmapFactory.Options();
+                options.inScaled = false;
+                options.inSampleSize = 2;
 
-            imageView.setImageBitmap(img);
-        } catch (IOException e) {
-            e.printStackTrace();
+                Bitmap img = BitmapFactory.decodeStream(imgStream, null, options);
+
+                imageView.setImageBitmap(img);
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        } else { // online uri --> download & don't cache
+            Picasso.get().load(imageUri).placeholder(R.drawable.image_place_holder).into(imageView);
+
+            // set url to tag as indicator in case of deletion
+            imageView.setTag(imageUri.toString());
         }
     }
 }

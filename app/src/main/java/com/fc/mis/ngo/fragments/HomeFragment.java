@@ -8,15 +8,19 @@ import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 
 import com.fc.mis.ngo.activities.CaseActivity;
+import com.google.android.material.behavior.HideBottomViewOnScrollBehavior;
+import com.google.android.material.bottomnavigation.BottomNavigationView;
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
 import com.google.android.material.tabs.TabLayout;
 
+import androidx.coordinatorlayout.widget.CoordinatorLayout;
 import androidx.fragment.app.Fragment;
 import androidx.viewpager.widget.ViewPager;
 
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.FrameLayout;
 
 import com.fc.mis.ngo.R;
 import com.fc.mis.ngo.activities.MainActivity;
@@ -59,6 +63,25 @@ public class HomeFragment extends Fragment {
             }
         });
 
+        mTabLayout.addOnTabSelectedListener(new ViewPagerOnTabSelectedListener(mViewPager) {
+            @Override
+            public void onTabSelected(TabLayout.Tab tab) {
+                super.onTabSelected(tab);
+                mActionBtn.show();
+                try {
+
+                    BottomNavigationView bnv = getActivity().findViewById(R.id.main_bottom_nav_bar);
+                    HideBottomViewOnScrollBehavior behavior =
+                            (HideBottomViewOnScrollBehavior) ((
+                                    (CoordinatorLayout.LayoutParams) bnv.getLayoutParams())
+                                    .getBehavior());
+                    behavior.onNestedScroll(null, bnv,
+                            null, 0, -1, 0, 0);
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+            }
+        });
         return view;
     }
 

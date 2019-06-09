@@ -9,11 +9,12 @@
         style="@style/Widget.MaterialComponents.CardView"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:layout_margin="10dp"
-        android:elevation="8dp"
-        app:cardCornerRadius="6dp"
-        app:strokeColor="@color/colorBorder"
-        app:strokeWidth="2dp">
+        android:layout_marginTop="15dp"
+        android:layout_marginStart="15dp"
+        android:layout_marginEnd="15dp"
+        android:layout_marginBottom="10dp"
+        app:cardElevation="5dp"
+        app:cardCornerRadius="10dp">
 
         <androidx.appcompat.widget.LinearLayoutCompat
             android:layout_width="match_parent"
@@ -27,7 +28,7 @@
                 android:adjustViewBounds="true"
                 android:maxHeight="150dp"
                 android:scaleType="centerCrop"
-                android:src="@drawable/start_screen" />
+                android:visibility="gone"/>
 
             <androidx.appcompat.widget.AppCompatTextView
                 android:id="@+id/case_single_title_txt"
@@ -50,6 +51,7 @@
                 android:layout_marginEnd="14dp"
                 android:maxHeight="80dp"
                 android:text="Case Body"
+                android:lineSpacingExtra="1dp"
                 android:textColor="@color/colorSubTitle"
                 android:textSize="14sp" />
 
@@ -82,13 +84,14 @@
                         android:textSize="12sp" />
 
                     <androidx.appcompat.widget.AppCompatImageView
+                        android:id="@+id/case_single_org_name_sep"
                         android:layout_width="3dp"
                         android:layout_height="3dp"
                         android:layout_gravity="center"
                         android:layout_marginStart="5dp"
                         android:layout_marginTop="1dp"
                         android:src="@drawable/dot_seperator"
-                        android:tint="@color/colorSubTitle" />
+                        android:tint="@color/colorSubTitle3" />
 
                     <androidx.appcompat.widget.AppCompatTextView
                         android:id="@+id/case_single_time_stamp_txt"
@@ -107,8 +110,8 @@
                     android:layout_alignParentRight="true">
 
                     <androidx.appcompat.widget.AppCompatImageView
-                        android:layout_width="18dp"
-                        android:layout_height="18dp"
+                        android:layout_width="24dp"
+                        android:layout_height="24dp"
                         android:src="@drawable/ic_cash"
                         android:tint="@color/colorPrimary" />
 
