@@ -29,13 +29,13 @@ import com.squareup.picasso.Picasso;
 
 import java.util.List;
 
-public class CaseListAdpater extends RecyclerView.Adapter<CaseListAdpater.CaseViewHolder> {
+public class CaseListAdapter extends RecyclerView.Adapter<CaseListAdapter.CaseViewHolder> {
 
     private Context mContext;
     private List<Case> mCases;
     private boolean mDisplayOrg = false;
 
-    public CaseListAdpater(Context context, List<Case> cases, boolean displayOrg) {
+    public CaseListAdapter(Context context, List<Case> cases, boolean displayOrg) {
         this.mContext = context;
         this.mCases = cases;
         this.mDisplayOrg = displayOrg;
@@ -176,6 +176,7 @@ public class CaseListAdpater extends RecyclerView.Adapter<CaseListAdpater.CaseVi
         private void removeCase() {
             String currentUserId = FirebaseAuth.getInstance().getCurrentUser().getUid();
             DatabaseReference caseNode = FirebaseDatabase.getInstance().getReference()
+                    .child("Cases")
                     .child(currentUserId)
                     .child(mCaseRef.getCaseId());
 

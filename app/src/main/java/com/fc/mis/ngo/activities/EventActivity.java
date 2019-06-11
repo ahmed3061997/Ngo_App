@@ -2,6 +2,7 @@ package com.fc.mis.ngo.activities;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
+import androidx.annotation.RequiresApi;
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.widget.AppCompatImageView;
@@ -12,12 +13,15 @@ import android.animation.Animator;
 import android.animation.AnimatorListenerAdapter;
 import android.animation.ValueAnimator;
 import android.annotation.SuppressLint;
+import android.app.DatePickerDialog;
 import android.app.ProgressDialog;
+import android.app.TimePickerDialog;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.net.Uri;
+import android.os.Build;
 import android.os.Bundle;
 import android.provider.MediaStore;
 import android.util.Log;
@@ -25,10 +29,12 @@ import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.WindowManager;
+import android.widget.DatePicker;
+import android.widget.TimePicker;
 import android.widget.Toast;
 
 import com.fc.mis.ngo.R;
-import com.fc.mis.ngo.models.Case;
+import com.fc.mis.ngo.models.Event;
 import com.fc.mis.ngo.models.SwipeDismissTouchListener;
 import com.google.android.gms.tasks.OnCompleteListener;
 import com.google.android.gms.tasks.OnSuccessListener;
@@ -38,11 +44,8 @@ import com.google.android.material.floatingactionbutton.FloatingActionButton;
 import com.google.android.material.snackbar.Snackbar;
 import com.google.android.material.textfield.TextInputEditText;
 import com.google.firebase.auth.FirebaseAuth;
-import com.google.firebase.database.DataSnapshot;
-import com.google.firebase.database.DatabaseError;
 import com.google.firebase.database.DatabaseReference;
 import com.google.firebase.database.FirebaseDatabase;
-import com.google.firebase.database.ValueEventListener;
 import com.google.firebase.storage.FirebaseStorage;
 import com.google.firebase.storage.StorageReference;
 import com.google.firebase.storage.UploadTask;
@@ -52,11 +55,15 @@ import com.squareup.picasso.Picasso;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Calendar;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Locale;
 
-public class CaseActivity extends AppCompatActivity {
+public class EventActivity extends AppCompatActivity {
     private static final int PICK_COVER_IMAGE = 100;
     private static final int PICK_IMAGE = 101;
 
@@ -68,48 +75,64 @@ public class CaseActivity extends AppCompatActivity {
     private MaterialButton mAddPicBtn;
     private TextInputEditText mTitle;
     private TextInputEditText mBody;
-    private TextInputEditText mDonated;
-    private TextInputEditText mNeeded;
+    private TextInputEditText mLocation;
+    private TextInputEditText mTime;
     private AppCompatImageView mCoverImg;
     private LinearLayoutCompat mImagesListLayout;
 
     private ProgressDialog mProgress;
 
     private boolean mEditMode;
-    private Case mCase;
+    private Event mEvent;
     private List<Uri> mImageList;
     private List<String> mImageToRemove;
     private String mCurrentUserId;
-    private DatabaseReference mCasesDatabase;
+    private DatabaseReference mEventsDatabase;
     private boolean mCoverChanged = false;
-
+    private Calendar mCalendar;
 
     @SuppressLint("ClickableViewAccessibility")
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_case);
+        setContentView(R.layout.activity_event);
 
         // toolbar
-        mToolbar = (Toolbar) findViewById(R.id.case_toolbar);
+        mToolbar = (Toolbar) findViewById(R.id.event_toolbar);
 
         setSupportActionBar(mToolbar);
-        getSupportActionBar().setTitle("Add Case");
+        getSupportActionBar().setTitle("Add Event");
         getSupportActionBar().setDisplayHomeAsUpEnabled(true);
         getSupportActionBar().setHomeButtonEnabled(true);
 
 
         // UI
-        mAddPicBtn = (MaterialButton) findViewById(R.id.case_add_picture_btn);
-        mAddCoverBtn = (MaterialButton) findViewById(R.id.case_add_cover_btn);
-        mFabBtn = (FloatingActionButton) findViewById(R.id.case_fab_btn);
-        mTitle = (TextInputEditText) findViewById(R.id.case_title_field);
-        mBody = (TextInputEditText) findViewById(R.id.case_body_field);
-        mDonated = (TextInputEditText) findViewById(R.id.case_donated_field);
-        mNeeded = (TextInputEditText) findViewById(R.id.case_needed_field);
-        mCoverImg = (AppCompatImageView) findViewById(R.id.case_cover_img);
-        mImagesListLayout = (LinearLayoutCompat) findViewById(R.id.case_images_list);
+        mAddPicBtn = (MaterialButton) findViewById(R.id.event_add_picture_btn);
+        mAddCoverBtn = (MaterialButton) findViewById(R.id.event_add_cover_btn);
+        mFabBtn = (FloatingActionButton) findViewById(R.id.event_fab_btn);
+        mTitle = (TextInputEditText) findViewById(R.id.event_title_field);
+        mBody = (TextInputEditText) findViewById(R.id.event_body_field);
+        mLocation = (TextInputEditText) findViewById(R.id.event_location_field);
+        mTime = (TextInputEditText) findViewById(R.id.event_time_field);
+        mCoverImg = (AppCompatImageView) findViewById(R.id.event_cover_img);
+        mImagesListLayout = (LinearLayoutCompat) findViewById(R.id.event_images_list);
 
+
+        // Variables
+        mProgress = new ProgressDialog(this);
+        mProgress.setTitle("Saving Event");
+        mProgress.setMessage("Please wait while we upload your event");
+        mProgress.setCanceledOnTouchOutside(false);
+        mProgress.setCancelable(false);
+
+        mImageList = new ArrayList<>();
+        mImageToRemove = new ArrayList<>();
+
+        mCurrentUserId = FirebaseAuth.getInstance().getCurrentUser().getUid();
+        mEventsDatabase = FirebaseDatabase.getInstance().getReference().child("Events").child(mCurrentUserId);
+
+
+        // Event Handling
         mAddPicBtn.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
@@ -150,34 +173,41 @@ public class CaseActivity extends AppCompatActivity {
             @Override
             public void onClick(View v) {
                 if (v.getTag().equals("done")) {
-                    saveCase();
+                    saveEvent();
                 } else if (v.getTag().equals("edit")) {
                     enterEditMode();
                 }
             }
         });
 
-        mProgress = new ProgressDialog(this);
-        mProgress.setTitle("Saving Case");
-        mProgress.setMessage("Please wait while we upload your case");
-        mProgress.setCanceledOnTouchOutside(false);
-        mProgress.setCancelable(false);
+        mTime.setOnFocusChangeListener(new View.OnFocusChangeListener() {
+            @RequiresApi(api = Build.VERSION_CODES.N)
+            @Override
+            public void onFocusChange(View v, boolean hasFocus) {
+                if (hasFocus)
+                    pickDateTime();
+            }
+        });
 
-        mImageList = new ArrayList<>();
-        mImageToRemove = new ArrayList<>();
-
-        mCurrentUserId = FirebaseAuth.getInstance().getCurrentUser().getUid();
-        mCasesDatabase = FirebaseDatabase.getInstance().getReference().child("Cases").child(mCurrentUserId);
+        mTime.setOnClickListener(new View.OnClickListener() {
+            @RequiresApi(api = Build.VERSION_CODES.N)
+            @Override
+            public void onClick(View v) {
+                pickDateTime();
+            }
+        });
 
 
         // Intent options
         Intent intent = getIntent();
         mEditMode = intent.getBooleanExtra("EditMode", false);
 
-        if (intent.hasExtra("Case")) {
-            mCase = (Case) getIntent().getSerializableExtra("Case");
+        mCalendar = Calendar.getInstance();
 
-            if (mCase == null) {
+        if (intent.hasExtra("Event")) {
+            mEvent = (Event) getIntent().getSerializableExtra("Event");
+
+            if (mEvent == null) {
                 showAlert(null, "Can't deserialize data", new DialogInterface.OnCancelListener() {
                     @Override
                     public void onCancel(DialogInterface dialog) {
@@ -187,12 +217,14 @@ public class CaseActivity extends AppCompatActivity {
                 return;
             }
 
-            mTitle.setText(mCase.getTitle());
-            mBody.setText(mCase.getBody());
-            mDonated.setText("" + mCase.getDonated());
-            mNeeded.setText("" + mCase.getNeeded());
+            mTitle.setText(mEvent.getTitle());
+            mBody.setText(mEvent.getBody());
+            mLocation.setText(mEvent.getLocation());
 
-            Picasso.get().load(mCase.getThumbImg()).noPlaceholder().into(mCoverImg, new Callback() {
+            mCalendar.setTimeInMillis(mEvent.getTime());
+            displayDateTime();
+
+            Picasso.get().load(mEvent.getThumbImg()).noPlaceholder().into(mCoverImg, new Callback() {
                 @Override
                 public void onSuccess() {
                     mCoverImg.setVisibility(View.VISIBLE);
@@ -203,12 +235,12 @@ public class CaseActivity extends AppCompatActivity {
                 }
             });
 
-            if (mCase.getImages() != null)
-                for (String url : mCase.getImages()) {
+            if (mEvent.getImages() != null)
+                for (String url : mEvent.getImages()) {
                     addImageView(Uri.parse(url));
                 }
 
-            getSupportActionBar().setTitle("Edit Case");
+            getSupportActionBar().setTitle("Edit Event");
 
             if (!mEditMode) {
                 exitEditMode();
@@ -217,7 +249,7 @@ public class CaseActivity extends AppCompatActivity {
         } else {
             if (mEditMode) {
                 exitEditMode();
-                showAlert("Unexpected Error", "No case data specified", new DialogInterface.OnCancelListener() {
+                showAlert("Unexpected Error", "No event data specified", new DialogInterface.OnCancelListener() {
                     @Override
                     public void onCancel(DialogInterface dialog) {
                         finish();
@@ -227,15 +259,69 @@ public class CaseActivity extends AppCompatActivity {
         }
     }
 
+    // region date & time picker
+
+    @RequiresApi(api = Build.VERSION_CODES.N)
+    private void pickDateTime() {
+        final DatePickerDialog datePickerDialog = new DatePickerDialog(this, new DatePickerDialog.OnDateSetListener() {
+            @Override
+            public void onDateSet(DatePicker view, int year, int month, int dayOfMonth) {
+                mCalendar.set(Calendar.YEAR, year);
+                mCalendar.set(Calendar.MONTH, month);
+                mCalendar.set(Calendar.DAY_OF_MONTH, dayOfMonth);
+
+                pickTime();
+            }
+        }, mCalendar.get(Calendar.YEAR), mCalendar.get(Calendar.MONTH), mCalendar.get(Calendar.DAY_OF_MONTH));
+        datePickerDialog.setCancelable(false);
+        datePickerDialog.setCanceledOnTouchOutside(false);
+        datePickerDialog.show();
+    }
+
+    private void pickTime() {
+        final TimePickerDialog timePickerDialog = new TimePickerDialog(this, new TimePickerDialog.OnTimeSetListener() {
+            @Override
+            public void onTimeSet(TimePicker view, int hourOfDay, int minute) {
+                mCalendar.set(Calendar.HOUR_OF_DAY, hourOfDay);
+                mCalendar.set(Calendar.MINUTE, minute);
+
+                displayDateTime();
+            }
+        }, mCalendar.get(Calendar.HOUR_OF_DAY), mCalendar.get(Calendar.MINUTE), false);
+        timePickerDialog.setCancelable(false);
+        timePickerDialog.setCanceledOnTouchOutside(false);
+        timePickerDialog.show();
+    }
+
+    private void displayDateTime() {
+        int dayNum = mCalendar.get(Calendar.DAY_OF_MONTH);
+        String day = mCalendar.getDisplayName(Calendar.DAY_OF_WEEK, Calendar.SHORT, Locale.ENGLISH);
+        String month = mCalendar.getDisplayName(Calendar.MONTH, Calendar.SHORT, Locale.ENGLISH);
+
+        int hour = mCalendar.get(Calendar.HOUR);
+        String min = "" + mCalendar.get(Calendar.MINUTE);
+        String dayNight = (mCalendar.get(Calendar.AM_PM) == Calendar.AM ? "AM" : "PM");
+
+        if (dayNight.equals("AM")) // 0
+            hour = 12; // 12 instead
+
+        if (min.equals("0")) // :0
+            min += "0"; // :00 instead
+
+        mTime.setText(String.format("%s, %s %d %d:%s %s", day, month, dayNum, hour, min, dayNight));
+    }
+
+    // endregion
+
     // region editMode
 
     private void enterEditMode() {
-        getSupportActionBar().setTitle("Edit Case");
+        getSupportActionBar().setTitle("Edit Event");
         mEditMode = true;
         mTitle.setEnabled(true);
         mBody.setEnabled(true);
-        mNeeded.setEnabled(true);
-        mDonated.setEnabled(true);
+        mTime.setEnabled(true);
+        mLocation.setEnabled(true);
         mCoverImg.setEnabled(true);
         mImagesListLayout.setEnabled(true);
         mAddCoverBtn.setVisibility(View.VISIBLE);
@@ -245,12 +331,12 @@ public class CaseActivity extends AppCompatActivity {
     }
 
     private void exitEditMode() {
-        getSupportActionBar().setTitle("Case Details");
+        getSupportActionBar().setTitle("Event Details");
         mEditMode = false;
         mTitle.setEnabled(false);
         mBody.setEnabled(false);
-        mNeeded.setEnabled(false);
-        mDonated.setEnabled(false);
+        mTime.setEnabled(false);
+        mLocation.setEnabled(false);
         mCoverImg.setEnabled(false);
         mImagesListLayout.setEnabled(false);
         mAddCoverBtn.setVisibility(View.GONE);
@@ -276,21 +362,21 @@ public class CaseActivity extends AppCompatActivity {
 
     // endregion
 
-    // region updateCase
+    // region updateEvent
 
-    private void saveCase() {
-        if (mCase == null)
-            mCase = new Case();
+    private void saveEvent() {
+        if (mEvent == null)
+            mEvent = new Event();
 
         String title = mTitle.getText().toString();
         String body = mBody.getText().toString();
-        int donated = Integer.valueOf(mDonated.getText().toString());
-        int needed = Integer.valueOf(mNeeded.getText().toString());
+        String location = mLocation.getText().toString();
+        long time = mCalendar.getTimeInMillis();
         boolean imageChanged = mCoverChanged || mImageList.size() > 0;
 
 
-        if (title.equals(mCase.getTitle()) && body.equals(mCase.getBody()) &&
-                donated == mCase.getDonated() && needed == mCase.getNeeded() && !imageChanged) {
+        if (title.equals(mEvent.getTitle()) && body.equals(mEvent.getBody()) &&
+                location.equals(mEvent.getLocation()) && time == mEvent.getTime() && !imageChanged) {
 
             // no changes --> check if  user wanna delete cover image or other images
             if (mCoverImg.getVisibility() == View.GONE || mImageToRemove.size() > 0) {
@@ -306,7 +392,7 @@ public class CaseActivity extends AppCompatActivity {
                 return; // skip snackbar ...
             }
 
-            Snackbar.make(findViewById(R.id.case_coordinator_layout),
+            Snackbar.make(findViewById(R.id.event_coordinator_layout),
                     "No changes made !", Snackbar.LENGTH_SHORT).show();
 
             exitEditMode();
@@ -315,12 +401,12 @@ public class CaseActivity extends AppCompatActivity {
 
         mProgress.show();
 
-        mCase.setTitle(title);
-        mCase.setBody(body);
-        mCase.setDonated(Integer.valueOf(donated));
-        mCase.setNeeded(Integer.valueOf(needed));
+        mEvent.setTitle(title);
+        mEvent.setBody(body);
+        mEvent.setLocation(location);
+        mEvent.setTime(time);
 
-        Case.saveCase(mCase, new OnCompleteListener<Void>() {
+        Event.saveEvent(mEvent, new OnCompleteListener<Void>() {
             @Override
             public void onComplete(@NonNull Task<Void> task) {
                 if (task.isSuccessful()) {
@@ -330,7 +416,7 @@ public class CaseActivity extends AppCompatActivity {
                             if (task != null && !task.isSuccessful()) {
                                 mProgress.hide();
                                 showAlert("Error", task.getException().getMessage(), null);
-                                Log.d("CaseActivity", "skip uploading images");
+                                Log.d("EventActivity", "skip uploading images");
                                 return; // skip uploading images
                             }
                             updateImages();
@@ -347,8 +433,8 @@ public class CaseActivity extends AppCompatActivity {
         if (!mCoverChanged) {
             // Check if deleted
             if (mCoverImg.getVisibility() == View.GONE) { // If GONE --> deleted
-                mCasesDatabase
-                        .child(mCase.getCaseId())
+                mEventsDatabase
+                        .child(mEvent.getEventId())
                         .child("thumb_img")
                         .setValue("default"); // set to default
             }
@@ -376,15 +462,15 @@ public class CaseActivity extends AppCompatActivity {
             return;
         }
 
-        final StorageReference casesStorage = FirebaseStorage.getInstance().getReference()
-                .child("cases_images") // cases folder
+        final StorageReference eventsStorage = FirebaseStorage.getInstance().getReference()
+                .child("events_images") // events folder
                 .child(mCurrentUserId) // ngo id
-                .child(mCase.getCaseId()); // case id
+                .child(mEvent.getEventId()); // event id
 
-        final DatabaseReference caseNode = mCasesDatabase.child(mCase.getCaseId()); // case id
+        final DatabaseReference eventNode = mEventsDatabase.child(mEvent.getEventId()); // event id
 
         // upload thumb image
-        final StorageReference thumbFile = casesStorage.child("thumb_img.jpg");
+        final StorageReference thumbFile = eventsStorage.child("thumb_img.jpg");
         thumbFile.putStream(stream).addOnCompleteListener(new OnCompleteListener<UploadTask.TaskSnapshot>() {
             @Override
             public void onComplete(@NonNull Task<UploadTask.TaskSnapshot> task) {
@@ -392,13 +478,13 @@ public class CaseActivity extends AppCompatActivity {
 
                 if (task.isSuccessful()) {
 
-                    // assign thumb image url to case node
+                    // assign thumb image url to event node
                     thumbFile.getDownloadUrl().addOnSuccessListener(new OnSuccessListener<Uri>() {
                         @Override
                         public void onSuccess(Uri uri) {
                             HashMap<String, Object> map = new HashMap<>();
                             map.put("thumb_img", uri.toString());
-                            caseNode.updateChildren(map);
+                            eventNode.updateChildren(map);
                         }
                     });
 
@@ -410,13 +496,13 @@ public class CaseActivity extends AppCompatActivity {
     }
 
     private void updateImages() {
-        final StorageReference casesStorage = FirebaseStorage.getInstance().getReference()
-                .child("cases_images") // cases folder
+        final StorageReference eventsStorage = FirebaseStorage.getInstance().getReference()
+                .child("events_images") // events folder
                 .child(mCurrentUserId) // ngo id
-                .child(mCase.getCaseId()); // case id
+                .child(mEvent.getEventId()); // event id
 
-        final DatabaseReference imagesNode = mCasesDatabase
-                .child(mCase.getCaseId()) // case id
+        final DatabaseReference imagesNode = mEventsDatabase
+                .child(mEvent.getEventId()) // event id
                 .child("images");
 
         // remove images
@@ -438,7 +524,7 @@ public class CaseActivity extends AppCompatActivity {
         for (final Uri image : mImageList) {
             final DatabaseReference node = imagesNode.push();
 
-            final StorageReference imageFile = casesStorage.child(node.getKey() + ".jpg");
+            final StorageReference imageFile = eventsStorage.child(node.getKey() + ".jpg");
 
             try {
                 InputStream imgStream = getContentResolver().openInputStream(image);
@@ -449,7 +535,7 @@ public class CaseActivity extends AppCompatActivity {
                         mImageList.remove(image);
 
                         if (task.isSuccessful()) {
-                            Log.d("CaseActivity", "image uploaded, remaining: " + mImageList.size());
+                            Log.d("EventActivity", "image uploaded, remaining: " + mImageList.size());
 
                             imageFile.getDownloadUrl().addOnSuccessListener(new OnSuccessListener<Uri>() {
                                 @Override
@@ -459,7 +545,7 @@ public class CaseActivity extends AppCompatActivity {
                             });
 
                         } else {
-                            Log.e("CaseActivity",
+                            Log.e("EventActivity",
                                     "Error while uploading image, "
                                             + task.getException().getMessage());
                         }
@@ -479,8 +565,8 @@ public class CaseActivity extends AppCompatActivity {
     private void finishUpdating() {
         mProgress.hide();
 
-        Snackbar.make(findViewById(R.id.case_coordinator_layout),
-                "Case saved successfully", Snackbar.LENGTH_SHORT).show();
+        Snackbar.make(findViewById(R.id.event_coordinator_layout),
+                "Event saved successfully", Snackbar.LENGTH_SHORT).show();
 
         exitEditMode();
     }
@@ -611,14 +697,14 @@ public class CaseActivity extends AppCompatActivity {
     private void removeCoverImage() {
         mCoverImg.setVisibility(View.GONE);
         mAddCoverBtn.setVisibility(View.VISIBLE);
-        final Snackbar snackbar = Snackbar.make(findViewById(R.id.case_coordinator_layout),
+        final Snackbar snackbar = Snackbar.make(findViewById(R.id.event_coordinator_layout),
                 "Cover picture removed", Snackbar.LENGTH_LONG);
         snackbar.setAction("Undo", new View.OnClickListener() {
             @Override
             public void onClick(View v) {
                 mCoverImg.setVisibility(View.VISIBLE);
                 mAddCoverBtn.setVisibility(View.INVISIBLE);
-                Snackbar.make(findViewById(R.id.case_coordinator_layout),
+                Snackbar.make(findViewById(R.id.event_coordinator_layout),
                         "Cover picture restored", Snackbar.LENGTH_SHORT).show();
             }
         });
@@ -654,7 +740,7 @@ public class CaseActivity extends AppCompatActivity {
 
                     @Override
                     public void onError(Exception e) {
-                        Toast.makeText(CaseActivity.this, e.getMessage(), Toast.LENGTH_SHORT).show();
+                        Toast.makeText(EventActivity.this, e.getMessage(), Toast.LENGTH_SHORT).show();
                     }
                 });
             } else if (requestCode == PICK_IMAGE) {

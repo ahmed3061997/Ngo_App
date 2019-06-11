@@ -2,15 +2,14 @@
 <androidx.coordinatorlayout.widget.CoordinatorLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
-    android:id="@+id/case_coordinator_layout"
+    android:id="@+id/event_coordinator_layout"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:fitsSystemWindows="true"
-    tools:context=".activities.CaseActivity">
-
+    tools:context=".activities.EventActivity">
 
     <include
-        android:id="@+id/case_toolbar"
+        android:id="@+id/event_toolbar"
         layout="@layout/app_bar_layout" />
 
     <androidx.core.widget.NestedScrollView
@@ -29,7 +28,7 @@
                 android:layout_height="wrap_content">
 
                 <com.google.android.material.button.MaterialButton
-                    android:id="@+id/case_add_cover_btn"
+                    android:id="@+id/event_add_cover_btn"
                     style="@style/Widget.MaterialComponents.Button.TextButton"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
@@ -40,7 +39,7 @@
                     app:icon="@drawable/ic_add" />
 
                 <androidx.appcompat.widget.AppCompatImageView
-                    android:id="@+id/case_cover_img"
+                    android:id="@+id/event_cover_img"
                     android:layout_width="match_parent"
                     android:layout_height="250dp"
                     android:scaleType="centerCrop"
@@ -57,13 +56,13 @@
                 app:boxBackgroundColor="@color/custom_text_field_text_color">
 
                 <com.google.android.material.textfield.TextInputEditText
-                    android:id="@+id/case_title_field"
+                    android:id="@+id/event_title_field"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:hint="Title"
                     android:inputType="text"
-                    android:textSize="16sp"
-                    android:textColor="@color/custom_text_field_text_color"/>
+                    android:textColor="@color/custom_text_field_text_color"
+                    android:textSize="16sp" />
             </com.google.android.material.textfield.TextInputLayout>
 
             <com.google.android.material.textfield.TextInputLayout
@@ -74,76 +73,68 @@
                 android:layout_marginBottom="10dp">
 
                 <com.google.android.material.textfield.TextInputEditText
-                    android:id="@+id/case_body_field"
+                    android:id="@+id/event_body_field"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:gravity="top"
                     android:hint="Body"
                     android:inputType="textMultiLine"
-                    android:textSize="16sp"
                     android:lineSpacingExtra="4dp"
-                    android:textColor="@color/custom_text_field_text_color"/>
+                    android:textColor="@color/custom_text_field_text_color"
+                    android:textSize="16sp" />
             </com.google.android.material.textfield.TextInputLayout>
 
-            <androidx.appcompat.widget.LinearLayoutCompat
-                android:layout_width="wrap_content"
+
+            <com.google.android.material.textfield.TextInputLayout
+                android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_gravity="right"
+                android:layout_marginStart="8dp"
+                android:layout_marginEnd="8dp"
+                android:layout_marginBottom="10dp"
+                android:layout_weight="0.5">
+
+                <com.google.android.material.textfield.TextInputEditText
+                    android:id="@+id/event_location_field"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:drawableStart="@drawable/ic_location"
+                    android:drawablePadding="5dp"
+                    android:drawableTint="@color/colorPrimary"
+                    android:hint="Location"
+                    android:inputType="text"
+                    android:textColor="@color/custom_text_field_text_color"
+                    android:textSize="14sp" />
+            </com.google.android.material.textfield.TextInputLayout>
+
+            <com.google.android.material.textfield.TextInputLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
                 android:layout_marginStart="8dp"
                 android:layout_marginEnd="8dp"
                 android:layout_marginBottom="10dp">
 
-                <androidx.appcompat.widget.AppCompatImageView
-                    android:layout_width="30dp"
-                    android:layout_height="30dp"
-                    android:layout_gravity="center"
-                    android:layout_marginTop="4dp"
-                    android:layout_marginEnd="5dp"
-                    android:tint="@color/colorPrimary"
-                    app:srcCompat="@drawable/ic_cash" />
-
-                <com.google.android.material.textfield.TextInputLayout
+                <com.google.android.material.textfield.TextInputEditText
+                    android:id="@+id/event_time_field"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:layout_marginEnd="5dp">
+                    android:drawableStart="@drawable/ic_time"
+                    android:drawablePadding="5dp"
+                    android:drawableTint="@color/colorAccent"
+                    android:hint="Time"
+                    android:inputType="none"
+                    android:textColor="@color/custom_text_field_text_color"
+                    android:textSize="14sp" />
+            </com.google.android.material.textfield.TextInputLayout>
 
-                    <com.google.android.material.textfield.TextInputEditText
-                        android:id="@+id/case_donated_field"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:gravity="top"
-                        android:hint="Donated"
-                        android:inputType="number"
-                        android:minWidth="62dp"
-                        android:textSize="14sp"
-                        android:textColor="@color/custom_text_field_text_color" />
-                </com.google.android.material.textfield.TextInputLayout>
-
-                <com.google.android.material.textfield.TextInputLayout
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content">
-
-                    <com.google.android.material.textfield.TextInputEditText
-                        android:id="@+id/case_needed_field"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:gravity="top"
-                        android:hint="Needed"
-                        android:inputType="number"
-                        android:minWidth="62dp"
-                        android:textSize="14sp"
-                        android:textColor="@color/custom_text_field_text_color" />
-                </com.google.android.material.textfield.TextInputLayout>
-            </androidx.appcompat.widget.LinearLayoutCompat>
 
             <androidx.appcompat.widget.LinearLayoutCompat
-                android:id="@+id/case_images_list"
+                android:id="@+id/event_images_list"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:orientation="vertical">
 
                 <com.google.android.material.button.MaterialButton
-                    android:id="@+id/case_add_picture_btn"
+                    android:id="@+id/event_add_picture_btn"
                     style="@style/Widget.MaterialComponents.Button.TextButton"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
@@ -158,7 +149,7 @@
     </androidx.core.widget.NestedScrollView>
 
     <com.google.android.material.floatingactionbutton.FloatingActionButton
-        android:id="@+id/case_fab_btn"
+        android:id="@+id/event_fab_btn"
         style="@style/Widget.MaterialComponents.FloatingActionButton"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"

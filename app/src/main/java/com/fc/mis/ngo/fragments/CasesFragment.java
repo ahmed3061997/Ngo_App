@@ -11,14 +11,12 @@ import androidx.recyclerview.widget.GridLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 import androidx.swiperefreshlayout.widget.SwipeRefreshLayout;
 
-import android.os.Handler;
-import android.os.Looper;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 
 import com.fc.mis.ngo.R;
-import com.fc.mis.ngo.adapters.CaseListAdpater;
+import com.fc.mis.ngo.adapters.CaseListAdapter;
 import com.fc.mis.ngo.models.Case;
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
 import com.google.firebase.auth.FirebaseAuth;
@@ -31,7 +29,6 @@ import com.google.firebase.database.FirebaseDatabase;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
-import java.util.List;
 
 public class CasesFragment extends Fragment implements ChildEventListener, SwipeRefreshLayout.OnRefreshListener {
     public CasesFragment() {
@@ -45,7 +42,7 @@ public class CasesFragment extends Fragment implements ChildEventListener, Swipe
     private FloatingActionButton mActionFab;
     private RecyclerView mCasesListView;
     private ArrayList<Case> mCases;
-    private CaseListAdpater mAdapter;
+    private CaseListAdapter mAdapter;
     private SwipeRefreshLayout mRefreshLayout;
 
     private String mOrgName;
@@ -65,7 +62,7 @@ public class CasesFragment extends Fragment implements ChildEventListener, Swipe
         mRefreshLayout = (SwipeRefreshLayout) view.findViewById(R.id.case_fragment_refresh_layout);
 
         mCases = new ArrayList<>();
-        mAdapter = new CaseListAdpater(getContext(), mCases, false);
+        mAdapter = new CaseListAdapter(getContext(), mCases, false);
 
         GridLayoutManager layoutManager = new GridLayoutManager(getContext(), 1);
 

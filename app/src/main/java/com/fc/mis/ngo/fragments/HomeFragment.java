@@ -8,6 +8,7 @@ import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 
 import com.fc.mis.ngo.activities.CaseActivity;
+import com.fc.mis.ngo.activities.EventActivity;
 import com.google.android.material.behavior.HideBottomViewOnScrollBehavior;
 import com.google.android.material.bottomnavigation.BottomNavigationView;
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
@@ -88,18 +89,15 @@ public class HomeFragment extends Fragment {
     private void executeAction() {
         if (mTabLayout.getSelectedTabPosition() == 0) // Cases is selected
         {
-            showCase();
+            Intent intent = new Intent(getActivity(), CaseActivity.class);
+            startActivity(intent);
+
         } else { // Events is selected
-            showEvent();
+
+            Intent intent = new Intent(getActivity(), EventActivity.class);
+            startActivity(intent);
+
         }
-    }
-
-    private void showCase() {
-        Intent intent = new Intent(getActivity(), CaseActivity.class);
-        startActivity(intent);
-    }
-
-    private void showEvent() {
     }
 
     @Override
