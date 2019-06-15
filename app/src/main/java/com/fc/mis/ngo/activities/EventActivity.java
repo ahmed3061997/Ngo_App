@@ -364,9 +364,26 @@ public class EventActivity extends AppCompatActivity {
 
     // region updateEvent
 
+    private boolean validate() {
+        if (mTitle.getText().length() == 0 || mBody.getText().length() == 0 ||
+                mLocation.getText().length() == 0 || mTime.getText().length() == 0) {
+
+            Snackbar.make(findViewById(R.id.case_coordinator_layout),
+                    "Please, be sure you fill all data", Snackbar.LENGTH_SHORT).show();
+
+            exitEditMode();
+            return false; // validation failed
+        }
+        return true; // validation successed
+    }
+
+
     private void saveEvent() {
         if (mEvent == null)
             mEvent = new Event();
+
+        if (!validate()) // validation failed
+            return;
 
         String title = mTitle.getText().toString();
         String body = mBody.getText().toString();
@@ -389,6 +406,7 @@ public class EventActivity extends AppCompatActivity {
                         updateImages();
                     }
                 });
+
                 return; // skip snackbar ...
             }
 
@@ -651,7 +669,10 @@ public class EventActivity extends AppCompatActivity {
 
                     @Override
                     public void onDismiss(View view, Object token) {
-                        mImageToRemove.add(view.getTag().toString());
+                        Object url = view.getTag();
+                        if (url != null)
+                            mImageToRemove.add(view.getTag().toString());
+
                         mImagesListLayout.removeView(view);
                     }
                 }));

@@ -14,7 +14,8 @@
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
         android:theme="@style/AppTheme">
-        <activity android:name=".activities.EventActivity"></activity>
+        <activity android:name=".activities.NgoProfileActivity"></activity>
+        <activity android:name=".activities.EventActivity" />
         <activity
             android:name=".activities.CaseActivity"
             android:windowSoftInputMode="adjustResize" />
@@ -32,6 +33,7 @@
         <activity
             android:name="com.theartofdev.edmodo.cropper.CropImageActivity"
             android:theme="@style/Base.Theme.AppCompat" />
+        <activity android:name=".activities.NgoProfileExtentedActivity" />
     </application>
 
 </manifest>

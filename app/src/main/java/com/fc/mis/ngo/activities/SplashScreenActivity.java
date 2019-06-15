@@ -22,8 +22,6 @@ public class SplashScreenActivity extends AppCompatActivity {
 
         FirebaseApp.initializeApp(this);
 
-        //FirebaseApp.initializeApp(this);
-
         /* new Handler to start the Menu-Activity
            and close this splash-screen after some seconds */
         new Handler().postDelayed(new Runnable() {

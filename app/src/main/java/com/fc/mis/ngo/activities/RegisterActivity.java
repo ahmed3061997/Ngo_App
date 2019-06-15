@@ -166,7 +166,7 @@ public class RegisterActivity extends AppCompatActivity {
                     String user_id = mCurrentUser.getUid();
                     mDatabase = FirebaseDatabase.getInstance().getReference().child("Users").child(user_id);
 
-                    HashMap<String, String> userMap = new HashMap<>();
+                    HashMap<String, Object> userMap = new HashMap<>();
                     userMap.put("first_name", first_name);
                     userMap.put("last_name", last_name);
                     userMap.put("org_name", org_name);
@@ -174,6 +174,8 @@ public class RegisterActivity extends AppCompatActivity {
                     userMap.put("status", "Hi there , i'm using CharitAble App");
                     userMap.put("profile_image", "default");
                     userMap.put("thumb_image", "default");
+                    userMap.put("cases_num", 0);
+                    userMap.put("events_num", 0);
 
                     mDatabase.setValue(userMap).addOnCompleteListener(new OnCompleteListener<Void>() {
                         @Override

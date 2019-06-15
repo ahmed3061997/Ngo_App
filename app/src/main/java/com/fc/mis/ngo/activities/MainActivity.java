@@ -11,16 +11,28 @@ import com.google.android.gms.tasks.OnSuccessListener;
 import com.google.android.gms.tasks.Task;
 import com.google.android.material.bottomnavigation.BottomNavigationView;
 
+import androidx.annotation.RequiresApi;
 import androidx.appcompat.app.AlertDialog;
+import androidx.appcompat.view.menu.MenuItemImpl;
+import androidx.appcompat.widget.SearchView;
 import androidx.coordinatorlayout.widget.CoordinatorLayout;
+import androidx.core.content.ContextCompat;
+import androidx.core.view.MenuItemCompat;
 import androidx.fragment.app.Fragment;
 import androidx.appcompat.app.AppCompatActivity;
 
+import android.animation.Animator;
+import android.animation.AnimatorListenerAdapter;
 import android.app.ProgressDialog;
+import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
+import android.content.res.ColorStateList;
+import android.content.res.Resources;
+import android.content.res.TypedArray;
 import android.graphics.Bitmap;
 import android.net.Uri;
+import android.os.Build;
 import android.os.Bundle;
 
 import androidx.appcompat.widget.Toolbar;
@@ -29,6 +41,12 @@ import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
+import android.view.ViewAnimationUtils;
+import android.view.animation.AlphaAnimation;
+import android.view.animation.Animation;
+import android.view.animation.AnimationSet;
+import android.view.animation.TranslateAnimation;
+import android.widget.ImageView;
 import android.widget.Toast;
 
 import com.fc.mis.ngo.R;
@@ -141,7 +159,7 @@ public class MainActivity extends AppCompatActivity {
     }
 
     public void setActionBarShadow(boolean enabled) {
-        mToolbar.setElevation((enabled ? 4 : 0));
+        findViewById(R.id.main_app_bar_layout).setElevation((enabled ? 4 : 0));
     }
 
 
@@ -153,11 +171,113 @@ public class MainActivity extends AppCompatActivity {
         dialog.show();
     }
 
+    private MenuItem mSearchItem;
+
+    @RequiresApi(api = Build.VERSION_CODES.O)
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
         // Inflate the menu; this adds items to the action bar if it is present.
         getMenuInflater().inflate(R.menu.main_toolbar, menu);
+
+        mSearchItem = menu.findItem(R.id.toolbar_search_ic);
+
+        mSearchItem.setOnActionExpandListener(new MenuItem.OnActionExpandListener() {
+            @Override
+            public boolean onMenuItemActionCollapse(MenuItem item) {
+                // Called when SearchView is collapsing
+                if (mSearchItem.isActionViewExpanded()) {
+                    animateSearchToolbar(2, false, false);
+                }
+                return true;
+            }
+
+            @Override
+            public boolean onMenuItemActionExpand(MenuItem item) {
+                // Called when SearchView is expanding
+                animateSearchToolbar(2, true, true);
+                return true;
+            }
+        });
+
         return true;
+    }
+
+    public void animateSearchToolbar(int numberOfMenuIcon, boolean containsOverflow, boolean show) {
+
+        mToolbar.setBackgroundColor(ContextCompat.getColor(this, android.R.color.white));
+        getWindow().setStatusBarColor(ContextCompat.getColor(this, R.color.quantum_grey_600));
+
+        if (show) {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+                int width = mToolbar.getWidth() -
+                        (containsOverflow ? getResources().getDimensionPixelSize(R.dimen.abc_action_button_min_width_overflow_material) : 0) -
+                        ((getResources().getDimensionPixelSize(R.dimen.abc_action_button_min_width_material) * numberOfMenuIcon) / 2);
+                Animator createCircularReveal = ViewAnimationUtils.createCircularReveal(mToolbar,
+                        isRtl(getResources()) ? mToolbar.getWidth() - width : width, mToolbar.getHeight() / 2, 0.0f, (float) width);
+                createCircularReveal.setDuration(250);
+                createCircularReveal.start();
+            } else {
+                TranslateAnimation translateAnimation = new TranslateAnimation(0.0f, 0.0f, (float) (-mToolbar.getHeight()), 0.0f);
+                translateAnimation.setDuration(220);
+                mToolbar.clearAnimation();
+                mToolbar.startAnimation(translateAnimation);
+            }
+        } else {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+                int width = mToolbar.getWidth() -
+                        (containsOverflow ? getResources().getDimensionPixelSize(R.dimen.abc_action_button_min_width_overflow_material) : 0) -
+                        ((getResources().getDimensionPixelSize(R.dimen.abc_action_button_min_width_material) * numberOfMenuIcon) / 2);
+                Animator createCircularReveal = ViewAnimationUtils.createCircularReveal(mToolbar,
+                        isRtl(getResources()) ? mToolbar.getWidth() - width : width, mToolbar.getHeight() / 2, (float) width, 0.0f);
+                createCircularReveal.setDuration(250);
+                createCircularReveal.addListener(new AnimatorListenerAdapter() {
+                    @Override
+                    public void onAnimationEnd(Animator animation) {
+                        super.onAnimationEnd(animation);
+                        mToolbar.setBackgroundColor(getThemeColor(MainActivity.this, R.attr.colorPrimary));
+                        getWindow().setStatusBarColor(getThemeColor(MainActivity.this, R.attr.colorPrimaryDark));
+                    }
+                });
+                createCircularReveal.start();
+            } else {
+                AlphaAnimation alphaAnimation = new AlphaAnimation(1.0f, 0.0f);
+                Animation translateAnimation = new TranslateAnimation(0.0f, 0.0f, 0.0f, (float) (-mToolbar.getHeight()));
+                AnimationSet animationSet = new AnimationSet(true);
+                animationSet.addAnimation(alphaAnimation);
+                animationSet.addAnimation(translateAnimation);
+                animationSet.setDuration(220);
+                animationSet.setAnimationListener(new Animation.AnimationListener() {
+                    @Override
+                    public void onAnimationStart(Animation animation) {
+
+                    }
+
+                    @Override
+                    public void onAnimationEnd(Animation animation) {
+                        mToolbar.setBackgroundColor(getThemeColor(MainActivity.this, R.attr.colorPrimary));
+                    }
+
+                    @Override
+                    public void onAnimationRepeat(Animation animation) {
+
+                    }
+                });
+                mToolbar.startAnimation(animationSet);
+            }
+            getWindow().setStatusBarColor(getThemeColor(MainActivity.this, R.attr.colorPrimaryDark));
+        }
+    }
+
+    private boolean isRtl(Resources resources) {
+        return resources.getConfiguration().getLayoutDirection() == View.LAYOUT_DIRECTION_RTL;
+    }
+
+    private static int getThemeColor(Context context, int id) {
+        Resources.Theme theme = context.getTheme();
+        TypedArray a = theme.obtainStyledAttributes(new int[]{id});
+        int result = a.getColor(0, 0);
+        a.recycle();
+        return result;
     }
 
     @Override

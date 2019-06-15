@@ -6,9 +6,12 @@ import com.google.android.gms.tasks.OnCompleteListener;
 import com.google.android.gms.tasks.Task;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
+import com.google.firebase.database.DataSnapshot;
+import com.google.firebase.database.DatabaseError;
 import com.google.firebase.database.DatabaseReference;
 import com.google.firebase.database.FirebaseDatabase;
 import com.google.firebase.database.ServerValue;
+import com.google.firebase.database.ValueEventListener;
 
 import java.io.Serializable;
 import java.util.ArrayList;
@@ -108,19 +111,40 @@ public class Event implements Serializable {
         this.mLocation = location;
     }
 
+    public void remove() {
+        final DatabaseReference databaseReference = FirebaseDatabase.getInstance().getReference();
+
+        databaseReference
+                .child("Events")
+                .child(User.getCurrentUserId())
+                .child(mEventId)
+                .removeValue();
+
+        User.getCurrentUser().modifyCounter("events", -1); // decrement
+    }
+
+
     public static void saveEvent(final Event eventRef, final OnCompleteListener<Void> completeListener) {
-        FirebaseAuth auth = FirebaseAuth.getInstance();
-        FirebaseUser currentUser = auth.getCurrentUser();
-        String userId = currentUser.getUid(); // ngo id
+        final String userId = User.getCurrentUserId(); // ngo id
         String eventId = eventRef.getEventId();
 
-        final DatabaseReference databaseRef = (eventId == null ? FirebaseDatabase.getInstance().getReference()
-                .child("Events")
-                .child(userId) // ngo id
-                .push() /* event id (generated) */ : FirebaseDatabase.getInstance().getReference()
-                .child("Events")
-                .child(userId) // ngo id
-                .child(eventId)); // event id (given)
+        final DatabaseReference databaseRef;
+
+        if (eventId == null) {
+            databaseRef = FirebaseDatabase.getInstance().getReference()
+                    .child("Events")
+                    .child(userId) // ngo id
+                    .push(); // event id (generated)
+
+            // new event
+            User.getCurrentUser().modifyCounter("events", 1); // increment
+
+        } else {
+            databaseRef = FirebaseDatabase.getInstance().getReference()
+                    .child("Events")
+                    .child(userId) // ngo id
+                    .child(eventId); // event id (given)
+        }
 
         HashMap<String, Object> caseMap = new HashMap<>();
         caseMap.put("title", eventRef.getTitle());

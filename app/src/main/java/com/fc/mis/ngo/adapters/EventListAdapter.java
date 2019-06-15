@@ -14,12 +14,14 @@ import android.view.ViewGroup;
 import androidx.annotation.NonNull;
 import androidx.appcompat.widget.AppCompatImageView;
 import androidx.appcompat.widget.AppCompatTextView;
+import androidx.appcompat.widget.LinearLayoutCompat;
 import androidx.recyclerview.widget.RecyclerView;
 
 import com.fc.mis.ngo.R;
 import com.fc.mis.ngo.activities.EventActivity;
 import com.fc.mis.ngo.models.Event;
 import com.fc.mis.ngo.models.GetTimeAgo;
+import com.fc.mis.ngo.models.LanguageDetection;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.database.DatabaseReference;
 import com.google.firebase.database.FirebaseDatabase;
@@ -36,15 +38,21 @@ public class EventListAdapter extends RecyclerView.Adapter<EventListAdapter.Even
     private Context mContext;
     private List<Event> mEvents;
     private boolean mDisplayOrg = false;
+    private boolean mViewOnly = false;
 
-    public EventListAdapter(Context context, List<Event> events, boolean displayOrg) {
+    public EventListAdapter(Context context, List<Event> events, boolean displayOrg, boolean viewOnly) {
         this.mContext = context;
         this.mEvents = events;
         this.mDisplayOrg = displayOrg;
+        this.mViewOnly = viewOnly;
     }
 
     public boolean isDisplayOrg() {
         return mDisplayOrg;
+    }
+
+    public boolean isViewOnly() {
+        return mViewOnly;
     }
 
     @NonNull
@@ -67,7 +75,7 @@ public class EventListAdapter extends RecyclerView.Adapter<EventListAdapter.Even
         return mEvents.size();
     }
 
-    public class EventViewHolder extends RecyclerView.ViewHolder implements View.OnCreateContextMenuListener {
+    public class EventViewHolder extends RecyclerView.ViewHolder {
         private AppCompatImageView mCoverImg;
         private AppCompatImageView mOrgImg;
         private AppCompatTextView mOrgName;
@@ -76,6 +84,7 @@ public class EventListAdapter extends RecyclerView.Adapter<EventListAdapter.Even
         private AppCompatTextView mTime;
         private AppCompatTextView mLocation;
         private AppCompatTextView mEventTime;
+        private LinearLayoutCompat mContentLayout;
         private Event mEventRef;
 
         public EventViewHolder(@NonNull View view) {
@@ -88,15 +97,22 @@ public class EventListAdapter extends RecyclerView.Adapter<EventListAdapter.Even
             mTime = (AppCompatTextView) view.findViewById(R.id.event_single_time_stamp_txt);
             mLocation = (AppCompatTextView) view.findViewById(R.id.event_single_location_txt);
             mEventTime = (AppCompatTextView) view.findViewById(R.id.event_single_time_txt);
+            mContentLayout = (LinearLayoutCompat) view.findViewById(R.id.event_single_content_layout);
 
-            view.setOnClickListener(new View.OnClickListener() {
+            mContentLayout.setOnClickListener(new View.OnClickListener() {
                 @Override
                 public void onClick(View v) {
                     showEvent(false);
                 }
             });
 
-            view.setOnCreateContextMenuListener(this);
+            mContentLayout.setOnLongClickListener(new View.OnLongClickListener() {
+                @Override
+                public boolean onLongClick(View v) {
+                    showMenu();
+                    return false;
+                }
+            });
         }
 
         public void bindEvent(Event eventRef) {
@@ -142,6 +158,10 @@ public class EventListAdapter extends RecyclerView.Adapter<EventListAdapter.Even
                 min += "0"; // :00 instead
 
             mEventTime.setText(String.format("%s, %s %d %d:%s %s", day, month, dayNum, hour, min, dayNight));
+
+
+            LanguageDetection.checkLanguageLayoutDirectionForAr(mTitle);
+            LanguageDetection.checkLanguageLayoutDirectionForAr(mBody);
         }
 
         private void loadImage(final AppCompatImageView imageView, final String url) {
@@ -167,9 +187,11 @@ public class EventListAdapter extends RecyclerView.Adapter<EventListAdapter.Even
             });
         }
 
-        @Override
-        public void onCreateContextMenu(ContextMenu menu, View v, ContextMenu.ContextMenuInfo menuInfo) {
-            AlertDialog.Builder builder = new AlertDialog.Builder(v.getContext());
+        public void showMenu() {
+            if (isViewOnly())
+                return;
+
+            AlertDialog.Builder builder = new AlertDialog.Builder(itemView.getContext());
 
             builder.setItems(new String[]{"View", "Edit", "Delete"}, new DialogInterface.OnClickListener() {
                 @Override
@@ -188,6 +210,9 @@ public class EventListAdapter extends RecyclerView.Adapter<EventListAdapter.Even
         }
 
         private void showEvent(boolean edit) {
+            if (isViewOnly())
+                return;
+
             Intent intent = new Intent(mContext, EventActivity.class);
             intent.putExtra("EditMode", edit);
             intent.putExtra("Event", mEventRef);
@@ -195,13 +220,7 @@ public class EventListAdapter extends RecyclerView.Adapter<EventListAdapter.Even
         }
 
         private void removeEvent() {
-            String currentUserId = FirebaseAuth.getInstance().getCurrentUser().getUid();
-            DatabaseReference eventNode = FirebaseDatabase.getInstance().getReference()
-                    .child("Events")
-                    .child(currentUserId)
-                    .child(mEventRef.getEventId());
-
-            eventNode.removeValue();
+            mEventRef.remove();
 
             notifyItemRemoved(mEvents.indexOf(mEventRef));
 

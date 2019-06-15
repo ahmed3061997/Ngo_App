@@ -35,6 +35,14 @@ public class CasesFragment extends Fragment implements ChildEventListener, Swipe
         // Required empty public constructor
     }
 
+    public CasesFragment(String ngoId) {
+        mNgoId = ngoId;
+        mNested = true;
+    }
+
+    private boolean mNested = false;
+    private String mNgoId = null;
+
     // firebase Database
     private DatabaseReference mDatabase;
 
@@ -55,14 +63,15 @@ public class CasesFragment extends Fragment implements ChildEventListener, Swipe
         // Inflate the layout for this fragment
         final View view = inflater.inflate(R.layout.fragment_cases, container, false);
 
-        mActionFab = getParentFragment().getView().findViewById(R.id.home_action_fab_btn);
+        if (!mNested)
+            mActionFab = getParentFragment().getView().findViewById(R.id.home_action_fab_btn);
 
         mCasesListView = (RecyclerView) view.findViewById(R.id.case_fragment_recycler_view);
         mNoCasesTxt = (AppCompatTextView) view.findViewById(R.id.case_fragment_no_cases_txt);
         mRefreshLayout = (SwipeRefreshLayout) view.findViewById(R.id.case_fragment_refresh_layout);
 
         mCases = new ArrayList<>();
-        mAdapter = new CaseListAdapter(getContext(), mCases, false);
+        mAdapter = new CaseListAdapter(getContext(), mCases, false, mNested);
 
         GridLayoutManager layoutManager = new GridLayoutManager(getContext(), 1);
 
@@ -73,6 +82,10 @@ public class CasesFragment extends Fragment implements ChildEventListener, Swipe
         mRefreshLayout.setOnRefreshListener(this);
 
         String currentUserId = FirebaseAuth.getInstance().getCurrentUser().getUid();
+
+        if (mNested)
+            currentUserId = mNgoId;
+
         mDatabase = FirebaseDatabase.getInstance().getReference().child("Cases").child(currentUserId);
 
         mDatabase.addChildEventListener(this);
@@ -81,6 +94,9 @@ public class CasesFragment extends Fragment implements ChildEventListener, Swipe
             @Override
             public void onScrolled(@NonNull RecyclerView recyclerView, int dx, int dy) {
                 super.onScrolled(recyclerView, dx, dy);
+                if (mActionFab == null)
+                    return;
+
                 if (dy > 0) {
                     mActionFab.hide();
                 } else if (dy < 0) {

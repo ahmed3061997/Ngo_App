@@ -278,16 +278,31 @@ public class CaseActivity extends AppCompatActivity {
 
     // region updateCase
 
+    private boolean validate() {
+        if (mTitle.getText().length() == 0 || mBody.getText().length() == 0 ||
+                mNeeded.getText().length() == 0 || mDonated.getText().length() == 0) {
+
+            Snackbar.make(findViewById(R.id.case_coordinator_layout),
+                    "Please, be sure you fill all data", Snackbar.LENGTH_SHORT).show();
+
+            exitEditMode();
+            return false; // validation failed
+        }
+        return true; // validation successed
+    }
+
     private void saveCase() {
         if (mCase == null)
             mCase = new Case();
+
+        if (!validate()) // validation failed
+            return;
 
         String title = mTitle.getText().toString();
         String body = mBody.getText().toString();
         int donated = Integer.valueOf(mDonated.getText().toString());
         int needed = Integer.valueOf(mNeeded.getText().toString());
         boolean imageChanged = mCoverChanged || mImageList.size() > 0;
-
 
         if (title.equals(mCase.getTitle()) && body.equals(mCase.getBody()) &&
                 donated == mCase.getDonated() && needed == mCase.getNeeded() && !imageChanged) {
@@ -303,6 +318,7 @@ public class CaseActivity extends AppCompatActivity {
                         updateImages();
                     }
                 });
+
                 return; // skip snackbar ...
             }
 
@@ -565,7 +581,10 @@ public class CaseActivity extends AppCompatActivity {
 
                     @Override
                     public void onDismiss(View view, Object token) {
-                        mImageToRemove.add(view.getTag().toString());
+                        Object url = view.getTag();
+                        if (url != null) // assigned only if online picture
+                            mImageToRemove.add(url.toString());
+
                         mImagesListLayout.removeView(view);
                     }
                 }));

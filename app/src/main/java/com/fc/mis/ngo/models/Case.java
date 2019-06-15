@@ -108,19 +108,39 @@ public class Case implements Serializable {
         this.mDonated = donated;
     }
 
+    public void remove() {
+        final DatabaseReference databaseReference = FirebaseDatabase.getInstance().getReference();
+
+        databaseReference
+                .child("Cases")
+                .child(User.getCurrentUserId())
+                .child(mCaseId)
+                .removeValue();
+
+        User.getCurrentUser().modifyCounter("cases", -1); // decrement
+    }
+
     public static void saveCase(final Case caseRef, final OnCompleteListener<Void> completeListener) {
-        FirebaseAuth auth = FirebaseAuth.getInstance();
-        FirebaseUser currentUser = auth.getCurrentUser();
-        String userId = currentUser.getUid(); // ngo id
+        String userId = User.getCurrentUserId(); // ngo id
         String caseId = caseRef.getCaseId();
 
-        final DatabaseReference databaseRef = (caseId == null ? FirebaseDatabase.getInstance().getReference()
-                .child("Cases")
-                .child(userId) // ngo id
-                .push() /* case id (generated) */ : FirebaseDatabase.getInstance().getReference()
-                .child("Cases")
-                .child(userId) // ngo id
-                .child(caseId)); // case id (given)
+        final DatabaseReference databaseRef;
+
+        if (caseId == null) {
+            databaseRef = FirebaseDatabase.getInstance().getReference()
+                    .child("Cases")
+                    .child(userId) // ngo id
+                    .push(); // case id (generated)
+
+            // new case
+            User.getCurrentUser().modifyCounter("cases", 1); // increment
+
+        } else {
+            databaseRef = FirebaseDatabase.getInstance().getReference()
+                    .child("Cases")
+                    .child(userId) // ngo id
+                    .child(caseId); // case id (given)
+        }
 
         HashMap<String, Object> caseMap = new HashMap<>();
         caseMap.put("title", caseRef.getTitle());

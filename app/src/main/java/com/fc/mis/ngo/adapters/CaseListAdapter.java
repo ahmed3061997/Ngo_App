@@ -14,15 +14,20 @@ import android.view.ViewGroup;
 import androidx.annotation.NonNull;
 import androidx.appcompat.widget.AppCompatImageView;
 import androidx.appcompat.widget.AppCompatTextView;
+import androidx.appcompat.widget.LinearLayoutCompat;
 import androidx.recyclerview.widget.RecyclerView;
 
 import com.fc.mis.ngo.R;
 import com.fc.mis.ngo.activities.CaseActivity;
 import com.fc.mis.ngo.models.Case;
 import com.fc.mis.ngo.models.GetTimeAgo;
+import com.fc.mis.ngo.models.LanguageDetection;
+import com.google.android.gms.tasks.OnSuccessListener;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.database.DatabaseReference;
 import com.google.firebase.database.FirebaseDatabase;
+import com.google.firebase.ml.naturallanguage.FirebaseNaturalLanguage;
+import com.google.firebase.ml.naturallanguage.languageid.FirebaseLanguageIdentification;
 import com.squareup.picasso.Callback;
 import com.squareup.picasso.NetworkPolicy;
 import com.squareup.picasso.Picasso;
@@ -34,15 +39,21 @@ public class CaseListAdapter extends RecyclerView.Adapter<CaseListAdapter.CaseVi
     private Context mContext;
     private List<Case> mCases;
     private boolean mDisplayOrg = false;
+    private boolean mViewOnly = false;
 
-    public CaseListAdapter(Context context, List<Case> cases, boolean displayOrg) {
+    public CaseListAdapter(Context context, List<Case> cases, boolean displayOrg, boolean viewOnly) {
         this.mContext = context;
         this.mCases = cases;
         this.mDisplayOrg = displayOrg;
+        this.mViewOnly = viewOnly;
     }
 
     public boolean isDisplayOrg() {
         return mDisplayOrg;
+    }
+
+    public boolean isViewOnly() {
+        return mViewOnly;
     }
 
     @NonNull
@@ -65,7 +76,7 @@ public class CaseListAdapter extends RecyclerView.Adapter<CaseListAdapter.CaseVi
         return mCases.size();
     }
 
-    public class CaseViewHolder extends RecyclerView.ViewHolder implements View.OnCreateContextMenuListener {
+    public class CaseViewHolder extends RecyclerView.ViewHolder {
         private AppCompatImageView mCoverImg;
         private AppCompatImageView mOrgImg;
         private AppCompatTextView mOrgName;
@@ -73,6 +84,7 @@ public class CaseListAdapter extends RecyclerView.Adapter<CaseListAdapter.CaseVi
         private AppCompatTextView mBody;
         private AppCompatTextView mTime;
         private AppCompatTextView mDonation;
+        private LinearLayoutCompat mContentLayout;
         private Case mCaseRef;
 
         public CaseViewHolder(@NonNull View view) {
@@ -84,15 +96,22 @@ public class CaseListAdapter extends RecyclerView.Adapter<CaseListAdapter.CaseVi
             mBody = (AppCompatTextView) view.findViewById(R.id.case_single_body_txt);
             mTime = (AppCompatTextView) view.findViewById(R.id.case_single_time_stamp_txt);
             mDonation = (AppCompatTextView) view.findViewById(R.id.case_single_donation_txt);
+            mContentLayout = (LinearLayoutCompat) view.findViewById(R.id.case_single_content_layout);
 
-            view.setOnClickListener(new View.OnClickListener() {
+            mContentLayout.setOnClickListener(new View.OnClickListener() {
                 @Override
                 public void onClick(View v) {
                     showCase(false);
                 }
             });
 
-            view.setOnCreateContextMenuListener(this);
+            mContentLayout.setOnLongClickListener(new View.OnLongClickListener() {
+                @Override
+                public boolean onLongClick(View v) {
+                    showMenu();
+                    return false;
+                }
+            });
         }
 
         public void bindCase(Case caseRef) {
@@ -121,6 +140,9 @@ public class CaseListAdapter extends RecyclerView.Adapter<CaseListAdapter.CaseVi
             } else {
                 mDonation.setText(donated + " L.E / " + needed + " L.E");
             }
+
+            LanguageDetection.checkLanguageLayoutDirectionForAr(mTitle);
+            LanguageDetection.checkLanguageLayoutDirectionForAr(mBody);
         }
 
         private void loadImage(final AppCompatImageView imageView, final String url) {
@@ -146,9 +168,12 @@ public class CaseListAdapter extends RecyclerView.Adapter<CaseListAdapter.CaseVi
             });
         }
 
-        @Override
-        public void onCreateContextMenu(ContextMenu menu, View v, ContextMenu.ContextMenuInfo menuInfo) {
-            AlertDialog.Builder builder = new AlertDialog.Builder(v.getContext());
+
+        public void showMenu() {
+            if (isViewOnly())
+                return;
+
+            AlertDialog.Builder builder = new AlertDialog.Builder(itemView.getContext());
 
             builder.setItems(new String[]{"View", "Edit", "Delete"}, new DialogInterface.OnClickListener() {
                 @Override
@@ -167,6 +192,9 @@ public class CaseListAdapter extends RecyclerView.Adapter<CaseListAdapter.CaseVi
         }
 
         private void showCase(boolean edit) {
+            if (isViewOnly())
+                return;
+
             Intent intent = new Intent(mContext, CaseActivity.class);
             intent.putExtra("EditMode", edit);
             intent.putExtra("Case", mCaseRef);
@@ -174,13 +202,7 @@ public class CaseListAdapter extends RecyclerView.Adapter<CaseListAdapter.CaseVi
         }
 
         private void removeCase() {
-            String currentUserId = FirebaseAuth.getInstance().getCurrentUser().getUid();
-            DatabaseReference caseNode = FirebaseDatabase.getInstance().getReference()
-                    .child("Cases")
-                    .child(currentUserId)
-                    .child(mCaseRef.getCaseId());
-
-            caseNode.removeValue();
+            mCaseRef.remove();
 
             notifyItemRemoved(mCases.indexOf(mCaseRef));
 
