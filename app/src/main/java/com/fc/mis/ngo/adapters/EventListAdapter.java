@@ -1,5 +1,6 @@
 package com.fc.mis.ngo.adapters;
 
+import android.app.Activity;
 import android.app.AlertDialog;
 import android.content.Context;
 import android.content.DialogInterface;
@@ -15,6 +16,7 @@ import androidx.annotation.NonNull;
 import androidx.appcompat.widget.AppCompatImageView;
 import androidx.appcompat.widget.AppCompatTextView;
 import androidx.appcompat.widget.LinearLayoutCompat;
+import androidx.core.app.ActivityOptionsCompat;
 import androidx.recyclerview.widget.RecyclerView;
 
 import com.fc.mis.ngo.R;
@@ -216,6 +218,7 @@ public class EventListAdapter extends RecyclerView.Adapter<EventListAdapter.Even
             Intent intent = new Intent(mContext, EventActivity.class);
             intent.putExtra("EditMode", edit);
             intent.putExtra("Event", mEventRef);
+
             mContext.startActivity(intent);
         }
 

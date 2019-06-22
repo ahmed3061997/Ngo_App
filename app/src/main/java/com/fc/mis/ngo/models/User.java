@@ -15,27 +15,40 @@ public class User {
 
     public static String getCurrentUserId() {
         if (mCurrentUser == null)
-            mCurrentUser = new User();
+            mCurrentUser = getCurrentUser();
 
         return mCurrentUser.getUserId();
     }
 
 
     public static User getCurrentUser() {
-        if (mCurrentUser == null)
-            mCurrentUser = new User();
+        if (mCurrentUser == null) {
+            FirebaseUser user = FirebaseAuth.getInstance().getCurrentUser();
+            if (user == null)
+                return null;
+
+            mCurrentUser = new User(user);
+        }
 
         return mCurrentUser;
     }
 
     FirebaseUser mUser;
 
-    User() {
-        mUser = FirebaseAuth.getInstance().getCurrentUser();
+    private User(FirebaseUser user) {
+        mUser = user;
+    }
+
+    public FirebaseUser getFirebaseUser() {
+        return mUser;
     }
 
     public String getUserId() {
         return mUser.getUid();
+    }
+
+    public boolean isEmailVerified() {
+        return mUser.isEmailVerified();
     }
 
     public void modifyCounter(String catagory, final int modifier) {

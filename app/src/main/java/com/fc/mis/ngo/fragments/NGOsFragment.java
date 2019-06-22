@@ -22,6 +22,7 @@ import com.fc.mis.ngo.activities.MainActivity;
 import com.fc.mis.ngo.adapters.CaseListAdapter;
 import com.fc.mis.ngo.adapters.NgoListAdapter;
 import com.fc.mis.ngo.models.Ngo;
+import com.fc.mis.ngo.models.User;
 import com.google.firebase.database.ChildEventListener;
 import com.google.firebase.database.DataSnapshot;
 import com.google.firebase.database.DatabaseError;
@@ -97,6 +98,10 @@ public class NGOsFragment extends Fragment implements ChildEventListener {
     @Override
     public void onChildAdded(@NonNull DataSnapshot dataSnapshot, @Nullable String s) {
         if (dataSnapshot.hasChild("org_name")) { // ngo user
+
+            if (dataSnapshot.getKey().equals(User.getCurrentUserId()))
+                return; // skip our ngo... no need to see ur self
+
             Ngo ngo = loadNgo(dataSnapshot);
             mNgos.add(ngo);
             mAdapter.notifyDataSetChanged();

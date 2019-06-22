@@ -64,13 +64,13 @@ public class NgoProfileExtentedActivity extends AppCompatActivity {
         String ngoId = intent.getStringExtra("NgoId");
 
 
+        getSupportActionBar().setTitle(ngoName);
+
         if (viewType.equals("Cases")) {
-            getSupportActionBar().setTitle(ngoName + " 's Cases");
             getSupportFragmentManager()
                     .beginTransaction()
                     .replace(R.id.main_fragment_container, new CasesFragment(ngoId)).commit();
         } else {
-            getSupportActionBar().setTitle(ngoName + " 's Events");
             getSupportFragmentManager()
                     .beginTransaction()
                     .replace(R.id.main_fragment_container, new EventsFragment(ngoId)).commit();

@@ -6,6 +6,7 @@ import com.fc.mis.ngo.fragments.ChatFragment;
 import com.fc.mis.ngo.fragments.MoreFragment;
 import com.fc.mis.ngo.fragments.MyAccountFragment;
 import com.fc.mis.ngo.fragments.NGOsFragment;
+import com.fc.mis.ngo.models.User;
 import com.google.android.gms.tasks.OnCompleteListener;
 import com.google.android.gms.tasks.OnSuccessListener;
 import com.google.android.gms.tasks.Task;
@@ -53,6 +54,7 @@ import com.fc.mis.ngo.R;
 import com.fc.mis.ngo.fragments.HomeFragment;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
+import com.google.firebase.auth.UserProfileChangeRequest;
 import com.google.firebase.database.DatabaseReference;
 import com.google.firebase.database.FirebaseDatabase;
 import com.google.firebase.storage.FirebaseStorage;
@@ -77,7 +79,6 @@ public class MainActivity extends AppCompatActivity {
 
     // firebase Database
     private DatabaseReference mDatabase;
-    private FirebaseUser mCurrentUser;
     private FirebaseAuth mAuth;
 
     // firebase storage ...
@@ -117,7 +118,7 @@ public class MainActivity extends AppCompatActivity {
     protected void onStart() {
         super.onStart();
         // check if the user is signed in (not-null) and update UI accordingly
-        FirebaseUser currentUser = mAuth.getCurrentUser();
+        User currentUser = User.getCurrentUser();
         if (currentUser == null) {
             sendToStart();
         } else {
@@ -298,8 +299,7 @@ public class MainActivity extends AppCompatActivity {
                 // we gonna make this to get the image path to compress it ...
                 File thumb_filePath = new File(resultUri.getPath());
 
-                mCurrentUser = FirebaseAuth.getInstance().getCurrentUser();
-                final String Current_User_Id = mCurrentUser.getUid();
+                final String Current_User_Id = User.getCurrentUserId();
 
                 Bitmap thumb_bitmap = null;  // <<<< to avoid the error and also make try and catch ...
                 try {
@@ -356,6 +356,12 @@ public class MainActivity extends AppCompatActivity {
                                                 Map update_hashMap = new HashMap();
                                                 update_hashMap.put("profile_image", download_url);
                                                 update_hashMap.put("thumb_image", thumb_download_url);
+
+                                                User.getCurrentUser()
+                                                        .getFirebaseUser()
+                                                        .updateProfile(new UserProfileChangeRequest.Builder()
+                                                                .setPhotoUri(Uri.parse(thumb_download_url))
+                                                                .build());
 
                                                 mDatabase.updateChildren(update_hashMap)
                                                         .addOnCompleteListener(new OnCompleteListener<Void>() {

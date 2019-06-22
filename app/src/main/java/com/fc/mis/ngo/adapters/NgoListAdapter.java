@@ -1,5 +1,6 @@
 package com.fc.mis.ngo.adapters;
 
+import android.app.Activity;
 import android.app.AlertDialog;
 import android.content.Context;
 import android.content.DialogInterface;
@@ -12,6 +13,7 @@ import android.view.ViewGroup;
 import androidx.annotation.NonNull;
 import androidx.appcompat.widget.AppCompatTextView;
 import androidx.appcompat.widget.LinearLayoutCompat;
+import androidx.core.app.ActivityOptionsCompat;
 import androidx.recyclerview.widget.RecyclerView;
 
 import com.fc.mis.ngo.R;
@@ -138,6 +140,7 @@ public class NgoListAdapter extends RecyclerView.Adapter<NgoListAdapter.NgoViewH
             intent.putExtra("ViewType", catagory);
             intent.putExtra("NgoId", mNgo.getId());
             intent.putExtra("NgoName", mNgo.getOrgName());
+
             mContext.startActivity(intent);
         }
 
@@ -154,7 +157,7 @@ public class NgoListAdapter extends RecyclerView.Adapter<NgoListAdapter.NgoViewH
                     } else if (which == 2) {
                         showDetails("Cases");
                     } else if (which == 3) {
-                        //showDetails("Events");
+                        showDetails("Events");
                     }
                 }
             });

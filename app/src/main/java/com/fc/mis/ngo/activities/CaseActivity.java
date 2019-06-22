@@ -549,7 +549,10 @@ public class CaseActivity extends AppCompatActivity {
                 animator.addListener(new AnimatorListenerAdapter() {
                     @Override
                     public void onAnimationEnd(Animator animation) {
-                        mImageToRemove.add(v.getTag().toString());
+                        Object url = v.getTag();
+                        if (url != null) // assigned only if online picture
+                            mImageToRemove.add(url.toString());
+
                         mImagesListLayout.removeView(v);
                         // Reset view presentation
                         v.setAlpha(1f);

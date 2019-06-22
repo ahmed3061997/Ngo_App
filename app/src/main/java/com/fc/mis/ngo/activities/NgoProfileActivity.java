@@ -15,6 +15,7 @@ import android.widget.Button;
 import com.fc.mis.ngo.R;
 import com.fc.mis.ngo.models.Ngo;
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
+import com.squareup.picasso.Callback;
 import com.squareup.picasso.Picasso;
 
 import de.hdodenhof.circleimageview.CircleImageView;
@@ -27,7 +28,6 @@ public class NgoProfileActivity extends AppCompatActivity {
     private AppCompatTextView mEmail;
     private AppCompatTextView mAddress;
     private CircleImageView mThumbImg;
-    private FloatingActionButton mMailFab;
     private Button mViewCases;
     private Button mViewEvents;
     private Ngo mNgo;
@@ -53,7 +53,6 @@ public class NgoProfileActivity extends AppCompatActivity {
         mThumbImg = findViewById(R.id.ngo_profile_thumb_img);
         mViewCases = findViewById(R.id.ngo_profile_view_cases_btn);
         mViewEvents = findViewById(R.id.ngo_profile_view_events_btn);
-        mMailFab = findViewById(R.id.ngo_profile_mail_fab);
 
         mViewCases.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -69,18 +68,11 @@ public class NgoProfileActivity extends AppCompatActivity {
             }
         });
 
-        mMailFab.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                sendMessage();
-            }
-        });
-
         // Intent
         Intent intent = getIntent();
 
         if (!intent.hasExtra("Ngo")) {
-            Log.e("NgoProfileActiviy", "No ngo data");
+            Log.e("NgoProfileActivity", "No ngo data");
             finish();
         }
 
@@ -92,10 +84,6 @@ public class NgoProfileActivity extends AppCompatActivity {
 
         Picasso.get().load(mNgo.getThumbImage()).placeholder(R.drawable.default_avatar).into(mThumbImg);
     }
-
-    private void sendMessage() {
-    }
-
 
     private void showDetails(String catagory) {
         Intent intent = new Intent(this, NgoProfileExtentedActivity.class);

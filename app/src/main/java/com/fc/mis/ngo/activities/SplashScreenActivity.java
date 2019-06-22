@@ -9,6 +9,7 @@ import android.os.Handler;
 import com.fc.mis.ngo.R;
 import com.google.firebase.FirebaseApp;
 import com.google.firebase.FirebaseOptions;
+import com.google.firebase.database.FirebaseDatabase;
 import com.squareup.picasso.Picasso;
 
 public class SplashScreenActivity extends AppCompatActivity {
@@ -21,6 +22,7 @@ public class SplashScreenActivity extends AppCompatActivity {
         setContentView(R.layout.activity_splash_screen);
 
         FirebaseApp.initializeApp(this);
+        FirebaseDatabase.getInstance().setPersistenceEnabled(true); // keep data for offline use
 
         /* new Handler to start the Menu-Activity
            and close this splash-screen after some seconds */

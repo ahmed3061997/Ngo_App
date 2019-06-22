@@ -221,6 +221,7 @@ public class EventActivity extends AppCompatActivity {
             mBody.setText(mEvent.getBody());
             mLocation.setText(mEvent.getLocation());
 
+            // display time
             mCalendar.setTimeInMillis(mEvent.getTime());
             displayDateTime();
 
@@ -637,7 +638,10 @@ public class EventActivity extends AppCompatActivity {
                 animator.addListener(new AnimatorListenerAdapter() {
                     @Override
                     public void onAnimationEnd(Animator animation) {
-                        mImageToRemove.add(v.getTag().toString());
+                        Object url = v.getTag();
+                        if (url != null) // assigned only if online picture
+                            mImageToRemove.add(url.toString());
+
                         mImagesListLayout.removeView(v);
                         // Reset view presentation
                         v.setAlpha(1f);

@@ -15,7 +15,9 @@
         android:supportsRtl="true"
         android:theme="@style/AppTheme">
         <activity android:name=".activities.NgoProfileActivity"></activity>
-        <activity android:name=".activities.EventActivity" />
+        <activity
+            android:name=".activities.EventActivity"
+            android:windowSoftInputMode="adjustResize" />
         <activity
             android:name=".activities.CaseActivity"
             android:windowSoftInputMode="adjustResize" />
