@@ -11,6 +11,8 @@ import com.google.firebase.auth.FirebaseUser;
 import com.google.firebase.database.DatabaseReference;
 import com.google.firebase.database.FirebaseDatabase;
 import com.google.firebase.database.ServerValue;
+import com.google.firebase.storage.FirebaseStorage;
+import com.google.firebase.storage.StorageReference;
 
 import java.io.Serializable;
 import java.util.ArrayList;
@@ -109,13 +111,19 @@ public class Case implements Serializable {
     }
 
     public void remove() {
-        final DatabaseReference databaseReference = FirebaseDatabase.getInstance().getReference();
+        String userId = User.getCurrentUserId();
+        DatabaseReference databaseReference = FirebaseDatabase.getInstance().getReference();
 
         databaseReference
                 .child("Cases")
-                .child(User.getCurrentUserId())
+                .child(userId)
                 .child(mCaseId)
                 .removeValue();
+
+        StorageReference storage = FirebaseStorage.getInstance().getReference();
+
+        // remove case images'
+        storage.child("cases_images").child(userId).child(mCaseId).delete();
 
         User.getCurrentUser().modifyCounter("cases", -1); // decrement
     }

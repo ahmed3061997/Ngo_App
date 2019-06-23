@@ -12,6 +12,8 @@ import com.google.firebase.database.DatabaseReference;
 import com.google.firebase.database.FirebaseDatabase;
 import com.google.firebase.database.ServerValue;
 import com.google.firebase.database.ValueEventListener;
+import com.google.firebase.storage.FirebaseStorage;
+import com.google.firebase.storage.StorageReference;
 
 import java.io.Serializable;
 import java.util.ArrayList;
@@ -112,13 +114,19 @@ public class Event implements Serializable {
     }
 
     public void remove() {
-        final DatabaseReference databaseReference = FirebaseDatabase.getInstance().getReference();
+        String userId = User.getCurrentUserId();
+        DatabaseReference databaseReference = FirebaseDatabase.getInstance().getReference();
 
         databaseReference
                 .child("Events")
-                .child(User.getCurrentUserId())
+                .child(userId)
                 .child(mEventId)
                 .removeValue();
+
+        StorageReference storage = FirebaseStorage.getInstance().getReference();
+
+        // remove case images'
+        storage.child("events_images").child(userId).child(mEventId).delete();
 
         User.getCurrentUser().modifyCounter("events", -1); // decrement
     }

@@ -62,6 +62,7 @@ public class User {
 
         FirebaseDatabase.getInstance().getReference()
                 .child("Users")
+                .child("Ngos")
                 .child(getUserId())
                 .child(childName).addListenerForSingleValueEvent(new ValueEventListener() {
             @Override

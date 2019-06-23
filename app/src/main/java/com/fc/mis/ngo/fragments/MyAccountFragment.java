@@ -63,7 +63,7 @@ public class MyAccountFragment extends Fragment {
         mCurrentUser = FirebaseAuth.getInstance().getCurrentUser();
 
         String currentUserId = mCurrentUser.getUid();
-        mDatabase = FirebaseDatabase.getInstance().getReference().child("Users").child(currentUserId);
+        mDatabase = FirebaseDatabase.getInstance().getReference().child("Users").child("Ngos").child(currentUserId);
         mImageStorage = FirebaseStorage.getInstance().getReference();
 
         // retrieve data from database
